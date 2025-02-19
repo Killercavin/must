@@ -1,5 +1,5 @@
 virtual
-env/
+myenv/
 secrets.json
 __pycache__/
 *.pyc

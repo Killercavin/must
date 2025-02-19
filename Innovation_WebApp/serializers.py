@@ -23,83 +23,63 @@ class SubscribedUsersSerializer(serializers.ModelSerializer):
 
 class EventsSerializer(serializers.ModelSerializer):
     image_field = serializers.ImageField(write_only=True, required=False)  # To handle image upload
-    image_url = serializers.URLField(read_only=True) # To return the S3 URL
+    image_url = serializers.URLField(read_only=True)  # To return the S3 URL
 
     class Meta:
         model = Events
         fields = '__all__'
         extra_kwargs = {
-            'image': {'read_only': True}  # This field will store the S3 URL and is read-only
+            'image_url': {'read_only': True}  # This field will store the S3 URL and is read-only
         }
 
     def create(self, validated_data):
-        # Extract `image_field` from the validated data
         image_file = validated_data.pop('image_field', None)
         print("Starting creating process....")
-        print(f"Image file is in validated_data:{image_file}")
-        # Create the event instance
+        print(f"Image file is in validated_data: {image_file}")
+        
         event_instance = Events.objects.create(**validated_data)
         print(f"Event instance created with ID: {event_instance.id}")
 
-
-        # Handle S3 upload if an image is provided
         if image_file:
             try:
-                print(f"Attempting S3 upload for file: {image_file.name}")
-        
                 s3_client = boto3.client(
                     's3',
                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                    region_name=settings.AWS_S3_REGION_NAME
                 )
 
-                # Generate a unique file name
                 filename = f"event_images/{uuid.uuid4()}_{image_file.name}"
                 print(f"Generated filename: {filename}")
 
-                # Reset file pointer
                 image_file.seek(0)
-
-                # Upload the file to S3
-                print("Starting S3 upload...")
                 s3_client.upload_fileobj(
                     image_file,
                     settings.AWS_STORAGE_BUCKET_NAME,
                     filename,
-                    ExtraArgs={
-                        'ContentType': image_file.content_type
-                    }
+                    ExtraArgs={'ContentType': image_file.content_type}
                 )
                 print("S3 upload completed")
 
-                # Update instance with S3 URL
                 s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
                 print(f"Setting S3 URL: {s3_url}")
-                event_instance.image_field = s3_url
+                # Here we update image_url instead of image
+                event_instance.image_url = s3_url
                 event_instance.save()
 
-                # Set the public S3 URL in the `image` field
-                event_instance.image = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
-                event_instance.save()
             except Exception as e:
-                    print(f"Error uploading to S3: {str(e)}")
-                    import traceback
-                    print(f"Traceback: {traceback.format_exc()}")
-                    raise serializers.ValidationError(f"Failed to upload image to S3: {str(e)}")
+                print(f"Error uploading to S3: {str(e)}")
+                import traceback
+                print(f"Traceback: {traceback.format_exc()}")
+                raise serializers.ValidationError(f"Failed to upload image to S3: {str(e)}")
+
         return event_instance
-        
-   
 
     def update(self, instance, validated_data):
-        # Extract `image_field` from the validated data
         image_file = validated_data.pop('image_field', None)
 
-        # Update the instance fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        # Handle S3 upload if an image is provided
         if image_file:
             s3_client = boto3.client(
                 's3',
@@ -107,10 +87,7 @@ class EventsSerializer(serializers.ModelSerializer):
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
             )
 
-            # Generate a unique file name
             filename = f"event_images/{uuid.uuid4()}_{image_file.name}"
-
-            # Upload the file to S3
             s3_client.upload_fileobj(
                 image_file,
                 settings.AWS_STORAGE_BUCKET_NAME,
@@ -118,12 +95,12 @@ class EventsSerializer(serializers.ModelSerializer):
                 ExtraArgs={'ContentType': image_file.content_type}
             )
 
-            # Update the public S3 URL in the `image` field
-            instance.image = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
+            s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
+            # Here we update image_url instead of image
+            instance.image_url = s3_url
 
         instance.save()
         return instance
-    
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
