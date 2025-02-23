@@ -37,7 +37,7 @@ SECRET_KEY = 'django-insecure-r@!9vmn+e&@q*s8%35r12_yb6fagra4x+*sb7+j0ik&&1an8z%
 DEBUG = True
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','7h3pspsq-8000.uks1.devtunnels.ms']  # Add 'testserver'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','https://7h3pspsq-8000.uks1.devtunnels.ms']  # Add 'testserver'
 REST_USE_JWT = True
 # Application definition
 
@@ -287,3 +287,31 @@ AWS_REGION = ['AWS_REGION']
 
 FRONTEND_BASE_URL = "https://7h3pspsq-8000.uks1.devtunnels.ms/api/account"
 DEFAULT_FROM_EMAIL = "ondeyostephen0@gmail.com"
+
+
+INFOBIP_HOST = "xk5wxq.api.infobip.com"  # Your Infobip API host
+INFOBIP_API_KEY = "6e820a734172fd99011d921b5ca4e4fd-242bbee2-3714-403e-9292-85ea688bfa9e"
+INFOBIP_SENDER_NUMBER = "447860099299"  # Your WhatsApp business number
+
+
+# Celery Settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}

@@ -7,6 +7,7 @@ from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,C
 import boto3
 from django.conf import settings
 import uuid
+from .whatsapp_service import send_registration_confirmation
 
 
 
@@ -23,7 +24,7 @@ class SubscribedUsersSerializer(serializers.ModelSerializer):
 
 class EventsSerializer(serializers.ModelSerializer):
     image_field = serializers.ImageField(write_only=True, required=False)  # To handle image upload
-    #image_url = serializers.SerializerMethodField(read_only=True) # To return the S3 URL
+    image_url = serializers.SerializerMethodField() # To return the S3 URL
 
     class Meta:
         model = Events
@@ -33,7 +34,14 @@ class EventsSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'image_url': {'read_only': True}  # This field will store the S3 URL and is read-only
         }
-
+    def get_image_url(self,obj):
+        """Return the full s3 url for the image"""
+        if obj.image_url:
+            if obj.image_url.startswith('http'): # if it's already a full URL
+                return obj.image_url
+            # if it's just the path,Construct the full url
+            return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{obj.image_url}"
+        return None
    
 
     def create(self, validated_data):
@@ -77,11 +85,11 @@ class EventsSerializer(serializers.ModelSerializer):
                 )
                 print("S3 upload completed")
 
-                # Update instance with S3 URL
-                s3_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
-                print(f"Setting S3 URL: {s3_url}")
-                event_instance.image_field = s3_url
+               
+                # store just the path,the SerializerMethodField will construct the full url
+                event_instance.image_url = filename
                 event_instance.save()
+
 
                 # Set the public S3 URL in the `image` field
                 #event_instance.image = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
@@ -148,19 +156,22 @@ class EventsSerializer(serializers.ModelSerializer):
     
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EventRegistration
-        fields = '__all__'
-        #exclude = ('uid',)
-        read_only_fields = [ 'registration_timestamp', 'ticket_number']
+        class Meta:
+            model = EventRegistration
+            fields = '__all__'
+            #exclude = ('uid',)
+            read_only_fields = [ 'registration_timestamp', 'ticket_number']
 
-    def create(self, validated_data):
-        registration = super().create(validated_data)
-        
-        # Send ticket email
-        send_ticket_email(registration)
-        
-        return registration
+        def create(self, validated_data):
+            registration = super().create(validated_data)
+            
+            # Send ticket email
+            send_ticket_email(registration)
+
+            # send WhatsApp notification
+            send_registration_confirmation.delay(str(registration.uid))
+
+            return registration
     
 class CommunitySessionSerializer(serializers.ModelSerializer):
     class Meta:

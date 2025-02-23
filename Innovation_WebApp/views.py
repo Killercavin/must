@@ -39,6 +39,7 @@ from .serializers import EventsSerializer  # Assuming EventsSerializer is import
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 s3_client = boto3.client('s3')
+from .tasks import send_registration_confirmation
 class EventPagination(PageNumberPagination):
     page_size = 10 
     page_size_query_param = 'page_size'
@@ -265,6 +266,98 @@ class EventViewSet(viewsets.ModelViewSet):
                 'status': 'failed',
                 'data': None
             }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False,methods=['get'],url_path='user-registrations')
+    def get_user_registered_events(self,request):
+        try:
+            # Get email from query params
+            email = request.query_params.get('email')
+
+            if not email:
+                return Response({
+                    'message':'Email parameter is required',
+                    'status':'failed',
+                    'data':None
+                },status=status.HTTP_400_BAD_REQUEST)
+
+            # Get all events where this email has registraions
+            events = Events.objects.filter(
+                registrations__email =email
+            ).distinct()
+
+            if not events.exists():
+                return Response({
+                    'message':'No registered event found for this email',
+                    'status':'success',
+                    'data':[]
+                },status=status.HTTP_200_OK)
+
+            # serialize the events
+            serializer = self.get_serializer(events,many=True)
+            return Response({
+                'message':'Registered events retrieved successfully',
+                'status':'success',
+                'data':serializer.data
+            },status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'message':f'Error retrieving events: {str(e)}',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    # def get_user_events(self,request):
+    #     try:
+    #         # Get email from request parameters
+    #         email = request.query_params.get('email')
+
+    #         if not email:
+    #             return  Response({
+    #                 'message':'Email parameter is required',
+    #                 'status':'failed',
+    #                 'data':None
+    #             },status=status.HTTP_400_BAD_REQUEST)
+            
+    #         # Get all registrations for this email
+    #         registrations = EventRegistration.objects.filter(
+    #             email=email
+    #         ).select_related('event')
+
+    #         if not registrations.exists():
+    #             return Response({
+    #                 'message':'No events found for this email',
+    #                 'status':'success',
+    #                 'data':[]
+    #             },status=status.HTTP_200_OK)
+
+    #         # Collect event details for each registrations
+    #         events_data = []
+    #         for registration in registrations:
+    #             event_data = {
+    #                 'event_id':registration.event.id,
+    #                 'event_name':registration.event.name,
+    #                 'event_date':registration.event.date,
+    #                 'event_location':registration.event.location,
+    #                 'registration_date':registration.registration_timestamp,
+    #                 'ticket_number':registration.ticket_number
+    #             }
+    #             events_data.append(event_data)
+
+    #         return Response({
+    #             'message':'Events retrieved successfully',
+    #             'status':'success',
+    #             'data':events_data
+    #         },status=status.HTTP_200_OK)
+
+    #     except Exception as e:
+    #         return Response({
+    #             'message':f'Error retrieving events: {str(e)}',
+    #             'status':'failed',
+    #             'data':None
+    #         },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
      
     
 
@@ -418,40 +511,58 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         email = request.data.get('email')
         if not email:
             return Response({
-                'message':'Email is required for registration',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_400_BAD_REQUEST)
+                'message': 'Email is required for registration',
+                'status': 'failed',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        
-        # check for existig registrations  using email and event_id
+        # Check for existing registrations using email and event_id
         existing_registrations = EventRegistration.objects.filter(
-            event_id = event_pk,
+            event_id=event_pk,
             email=email
         ).exists()
 
         if existing_registrations:
             return Response({
-                'message':'You have already registered for this event',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_400_BAD_REQUEST)
-        
-
+                'message': 'You have already registered for this event',
+                'status': 'failed',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         mutable_data = request.data.copy()
         mutable_data['event'] = event_pk
 
         serializer = self.get_serializer(data=mutable_data)
-        
 
         if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Successfully registered for the event',
-                'status': 'Success',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
+            try:
+                # Save the registration
+                registration = serializer.save()
+                
+                # Queue WhatsApp notification
+                send_registration_confirmation.delay(str(registration.uid))
+                
+                return Response({
+                    'message': 'Successfully registered for the event',
+                    'status': 'success',
+                    'data': serializer.data
+                }, status=status.HTTP_200_OK)
+                
+            except ValidationError as e:
+                return Response({
+                    'message': str(e),
+                    'status': 'failed',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            except Exception as e:
+                # Log the error for debugging
+                print(f"Error during registration process: {str(e)}")
+                return Response({
+                    'message': 'An error occurred during registration',
+                    'status': 'failed',
+                    'data': None
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         error_messages = "\n".join(
             f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
@@ -682,3 +793,5 @@ class JoinCommunityView(APIView):
             'data':None
         },status=status.HTTP_400_BAD_REQUEST)
         
+
+

@@ -14,58 +14,53 @@
 #     1. Import the include() function: from django.urls import include, path
 #     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 # """
+
+
 # from django.contrib import admin
-# from django.contrib.messages import api
-# from django.urls import path,include
+# from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from rest_framework_nested import routers
 # from rest_framework_simplejwt.views import (
 #     TokenObtainPairView,
 #     TokenRefreshView,
 #     TokenVerifyView
 # )
-# from rest_framework.routers import DefaultRouter
-# from Innovation_WebApp.views import CommunityMembersView, EventRegistrationViewSet,CommunityProfileViewSet,TestimonialViewSet,SessionCreateView,JoinCommunityView
-# from rest_framework_nested import routers
-
+# from Innovation_WebApp.views import (
+#     CommunityMembersView, 
+#     EventRegistrationViewSet,
+#     CommunityProfileViewSet,
+#     EventViewSet,
+#     TestimonialViewSet,
+#     SessionCreateView,
+#     JoinCommunityView
+# )
 
 # router = DefaultRouter()
-# #router.register(r'event-registrations', EventRegistrationViewSet)
-# router.register(r'events', EventRegistrationViewSet)
+# router.register(r'events', EventRegistrationViewSet, basename='events_registration')
+# router.register(r'events', EventViewSet, basename='events')
+# router.register(r'communities', CommunityProfileViewSet)
+# router.register(r'testimonials', TestimonialViewSet)
 
 # event_router = routers.NestedDefaultRouter(router, r'events', lookup='event')
 # event_router.register(r'registrations', EventRegistrationViewSet, basename='event-registrations')
-# router.register(r'event-registrations', EventRegistrationViewSet, basename='event-registrations')
-
-
-# router.register(r'communities', CommunityProfileViewSet)
-# #router.register(r'community-categories', CommunityCategoryViewSet)
-# router.register(r'testimonials', TestimonialViewSet)
 
 # urlpatterns = [
 #     path('admin/', admin.site.urls),
-#     path('',include('Innovation_WebApp.urls')),
-#     path('api/',include('Api.urls')),
+#     path('', include('Innovation_WebApp.urls')),
+#     path('api/', include('Api.urls')),
+#     path('comments/', include('comments.urls')),
 #     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
 #     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 #     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-
-
-
-#     path('', include(router.urls)),
+    
 #     path('communities/<int:community_id>/sessions/', SessionCreateView.as_view(), name='create_community_session'),
 #     path('communities/<int:pk>/members/', CommunityMembersView.as_view(), name='community-members'),
 #     path('communities/<int:pk>/join/', JoinCommunityView.as_view(), name='join-community'),
-
-
+    
 #     path('', include(router.urls)),
 #     path('', include(event_router.urls)),
-#     path('events/<int:event_pk>/registrations/', EventRegistrationViewSet.as_view({'post': 'create'})),
-#     path('events/<int:event_pk>/registrations/export/', EventRegistrationViewSet.as_view({'get': 'export_registrations'})),
-
-
-
-
-
 # ]
+
 
 from django.contrib import admin
 from django.urls import path, include
@@ -86,12 +81,15 @@ from Innovation_WebApp.views import (
     JoinCommunityView
 )
 
+# Main router
 router = DefaultRouter()
-router.register(r'events', EventRegistrationViewSet, basename='events_registration')
+# Change the event registration URL pattern to avoid conflict
+router.register(r'event-registrations', EventRegistrationViewSet, basename='events_registration')
 router.register(r'events', EventViewSet, basename='events')
 router.register(r'communities', CommunityProfileViewSet)
 router.register(r'testimonials', TestimonialViewSet)
 
+# Nested router for event registrations
 event_router = routers.NestedDefaultRouter(router, r'events', lookup='event')
 event_router.register(r'registrations', EventRegistrationViewSet, basename='event-registrations')
 
@@ -111,5 +109,3 @@ urlpatterns = [
     path('', include(router.urls)),
     path('', include(event_router.urls)),
 ]
-
-

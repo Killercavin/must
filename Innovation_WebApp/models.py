@@ -23,6 +23,8 @@ class Events(models.Model):
         ('CYBERSEC','Cyber Security'),
         ('ANDROID','Android Development'),
         ('AI','Artificial Intelligence'),
+        ('BLOCKCHAIN','Blockchain'),
+        ('IoT','Internate of Things')
     ]
     name = models.CharField(max_length=100)
     category=models.CharField(max_length=10,choices=CATEGORY_CHOICE,null=False,default='Web Development')
