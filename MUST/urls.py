@@ -109,6 +109,7 @@ urlpatterns = [
     
     path('', include(router.urls)),
     path('', include(event_router.urls)),
+   
 ]
 
 
