@@ -498,80 +498,166 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
             },status=status.HTTP_400_BAD_REQUEST)
         
 
-    def create(self, request, *args, **kwargs):
+    # def create(self, request, *args, **kwargs):
+    #     event_pk = self.kwargs.get('event_pk')
+    #     if not event_pk:
+    #         return Response({
+    #             'message': 'Event ID is missing in the request URL',
+    #             'status': 'failed',
+    #             'data': None
+    #         }, status=status.HTTP_401_UNAUTHORIZED)
+        
+    #     # Get email from request data
+    #     email = request.data.get('email')
+    #     if not email:
+    #         return Response({
+    #             'message': 'Email is required for registration',
+    #             'status': 'failed',
+    #             'data': None
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+        
+    #     # Check for existing registrations using email and event_id
+    #     existing_registrations = EventRegistration.objects.filter(
+    #         event_id=event_pk,
+    #         email=email
+    #     ).exists()
+
+    #     if existing_registrations:
+    #         return Response({
+    #             'message': 'You have already registered for this event',
+    #             'status': 'failed',
+    #             'data': None
+    #         }, status=status.HTTP_400_BAD_REQUEST)
+
+    #     mutable_data = request.data.copy()
+    #     mutable_data['event'] = event_pk
+
+    #     serializer = self.get_serializer(data=mutable_data)
+
+    #     if serializer.is_valid():
+    #         try:
+    #             # Save the registration
+    #             registration = serializer.save()
+                
+    #             # Queue WhatsApp notification
+    #             send_registration_confirmation.delay(str(registration.uid))
+                
+    #             return Response({
+    #                 'message': 'Successfully registered for the event',
+    #                 'status': 'success',
+    #                 'data': serializer.data
+    #             }, status=status.HTTP_200_OK)
+                
+    #         except ValidationError as e:
+    #             return Response({
+    #                 'message': str(e),
+    #                 'status': 'failed',
+    #                 'data': None
+    #             }, status=status.HTTP_400_BAD_REQUEST)
+                
+    #         except Exception as e:
+    #             # Log the error for debugging
+    #             print(f"Error during registration process: {str(e)}")
+    #             return Response({
+    #                 'message': 'An error occurred during registration',
+    #                 'status': 'failed',
+    #                 'data': None
+    #             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    #     error_messages = "\n".join(
+    #         f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
+    #     )
+    #     return Response({
+    #         'message': f"Event Registration failed: {error_messages}",
+    #         'status': 'failed',
+    #         'data': None
+    #     }, status=status.HTTP_400_BAD_REQUEST)
+    def create(self,request,*args,**kwags):
         event_pk = self.kwargs.get('event_pk')
         if not event_pk:
             return Response({
-                'message': 'Event ID is missing in the request URL',
-                'status': 'failed',
-                'data': None
-            }, status=status.HTTP_401_UNAUTHORIZED)
+                'message':'Event ID is missing in the request URL',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_401_UNAUTHORIZED)
         
         # Get email from request data
         email = request.data.get('email')
         if not email:
             return Response({
-                'message': 'Email is required for registration',
-                'status': 'failed',
-                'data': None
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'message':'Email is required for registration',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
         
-        # Check for existing registrations using email and event_id
-        existing_registrations = EventRegistration.objects.filter(
-            event_id=event_pk,
-            email=email
-        ).exists()
-
-        if existing_registrations:
-            return Response({
-                'message': 'You have already registered for this event',
-                'status': 'failed',
-                'data': None
-            }, status=status.HTTP_400_BAD_REQUEST)
-
         mutable_data = request.data.copy()
         mutable_data['event'] = event_pk
 
-        serializer = self.get_serializer(data=mutable_data)
+        serializer = self.get_serializer(data = mutable_data)
 
         if serializer.is_valid():
             try:
-                # Save the registration
+                # save the registration
                 registration = serializer.save()
-                
+
+                # Retrieve event details
+                event = Events.objects.get(pk=event_pk)
+
                 # Queue WhatsApp notification
                 send_registration_confirmation.delay(str(registration.uid))
-                
+                print({
+                    "name": event.name,
+                    "category": event.category,
+                    "description": event.description,
+                    "date": event.date,
+                    "location": event.location,
+                    "organizer": event.organizer,
+                    "contact_email": event.contact_email,
+                    "is_virtual": event.is_virtual
+                })
+                event_instance = Events.objects.get(name="AI for Social Good Summit")
                 return Response({
-                    'message': 'Successfully registered for the event',
-                    'status': 'success',
-                    'data': serializer.data
-                }, status=status.HTTP_200_OK)
-                
+                    'message':'successfully registered for the event',
+                    'status':'success',
+                    'data':[
+                        {
+                            "name":event.name,
+                            "category":event.category,
+                            "description":event.description,
+                            #'image_url': event_instance.image_url(),
+                            "date": event.date.isoformat() if hasattr(event.date, 'isoformat') else str(event.date),
+                            "location":event.location,
+                            "organizer":event.organizer,
+                            "contact_email":event.contact_email,
+                            "is_virtual":event.is_virtual
+                        }
+                    ]
+                },status=status.HTTP_200_OK)
             except ValidationError as e:
                 return Response({
-                    'message': str(e),
-                    'status': 'failed',
-                    'data': None
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
+                    'message':str(e),
+                    'status':'failed',
+                    'date':None
+                },status=status.HTTP_400_BAD_REQUEST)
             except Exception as e:
-                # Log the error for debugging
-                print(f"Error during registration process: {str(e)}")
+                import traceback
+                traceback.print_exc() # print full error traceback
+                print(f'Error during registration process: {str(e)}')
                 return Response({
-                    'message': 'An error occurred during registration',
-                    'status': 'failed',
-                    'data': None
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+                    'message':'An error occured during registration',
+                    'status':'failed',
+                    'data':None
+                },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
         error_messages = "\n".join(
-            f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
+            f"{field}:{', '.join(errors)}" for field,errors in serializer.errors.items()
         )
         return Response({
-            'message': f"Event Registration failed: {error_messages}",
-            'status': 'failed',
-            'data': None
-        }, status=status.HTTP_400_BAD_REQUEST)
+            'message':f'Event registration failed:{error_messages}',
+            'status':'failed',
+            'data':None
+        },status=status.HTTP_400_BAD_REQUEST)
+    
     
 
     

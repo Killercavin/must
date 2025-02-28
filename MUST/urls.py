@@ -80,6 +80,7 @@ from Innovation_WebApp.views import (
     SessionCreateView,
     JoinCommunityView
 )
+from AboutUs import urls
 
 # Main router
 router = DefaultRouter()
@@ -108,4 +109,5 @@ urlpatterns = [
     
     path('', include(router.urls)),
     path('', include(event_router.urls)),
+    path('',include('AboutUs.urls'))
 ]

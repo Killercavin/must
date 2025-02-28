@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'sociallogins',
     'corsheaders',
     'comments',
+    'AboutUs',
 ]
 
 #AUTH_USER_MODEL = 'account.Account' 

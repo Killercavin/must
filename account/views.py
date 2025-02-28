@@ -384,6 +384,52 @@ class CustomTokenRefreshView(TokenRefreshView):
                 'status':'error',
                 'data':None
             },status=status.HTTP_401_UNAUTHORIZED)
+        
+
+# Retrieve all users in thee database
+class AllUsersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        try:
+            users = User.objects.all()
+            user_data_list = []
+
+            for user in users:
+                try:
+                    user_profile = UserProfile.objects.get(user=user)
+
+                    user_data = {
+                        'id':user.id,
+                        'username':user.username,
+                        'email':user.email,
+                        'first_name':user.first_name,
+                        'last_name':user.last_name,
+                        'course':user.email
+                    }
+                    user_data_list.append(user_data)
+                except UserProfile.DoesNotExist:
+                    # if user has no profile, you can either skip or include partial data
+                    user_data = {
+                        'id':user.id,
+                        'username':user.username,
+                        'email':user.email,
+                        'first_name':user.first_name,
+                        'last_name':user.last_name,
+                        'course':None
+                    }
+                    user_data_list.append(user_data)
+            
+            return Response({
+                'message':'All users retrieved successully',
+                'status':'success',
+                'data':user_data_list
+            },status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error':f'Error fetching users:{str(e)}'
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 
 
 # google oauth 

@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib import admin
-from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView
+from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
@@ -26,7 +26,10 @@ urlpatterns = [
     
 
     # get user data with access tokens
-    path('get-user-data/',UserDataView.as_view(),name='get_user_data')
+    path('get-user-data/',UserDataView.as_view(),name='get_user_data'),
+
+    # retrieve all users from the database
+    path('get-all-users/',AllUsersView.as_view(),name='get_all_users')
 
 
    
