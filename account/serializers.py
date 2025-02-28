@@ -11,6 +11,8 @@ from rest_framework.serializers import ValidationError
 import logging
 from.models import UserProfile
 
+from django.contrib.auth import get_user_model
+
 
 
 User = get_user_model()
@@ -71,7 +73,7 @@ class RegisterSerializer(serializers.Serializer):
             first_name=validated_data['firstname'],
             last_name=validated_data['lastname'],
             password=validated_data['password'],
-            is_active=False, #User will remain inactive unttil the email is verified 
+            is_active=True, #User will remain inactive unttil the email is verified 
         )
         UserProfile.objects.create(
             user=user,
@@ -171,3 +173,9 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 
+User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'  # Include all fields dynamically

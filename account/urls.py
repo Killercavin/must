@@ -1,10 +1,13 @@
 from django.urls import path
 from django.contrib import admin
+from .views import DeleteAccountView
 from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+
+from .views import get_all_users
 
 urlpatterns = [
     # Authentication Routes
@@ -26,7 +29,12 @@ urlpatterns = [
     
 
     # get user data with access tokens
-    path('get-user-data/',UserDataView.as_view(),name='get_user_data')
+    path('get-user-data/',UserDataView.as_view(),name='get_user_data'),
+
+
+    path('users/', get_all_users, name='get-all-users'),
+    
+    path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
 
 
    
