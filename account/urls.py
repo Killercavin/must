@@ -24,7 +24,7 @@ urlpatterns = [
     path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
     # JWT Token Routes
-    path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/',CustomTokenRefreshView.as_view(), name='token_refresh'),
     #path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
 
