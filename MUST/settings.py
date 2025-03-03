@@ -70,7 +70,8 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'sociallogins',
     'corsheaders',
-    'comments'
+    'comments',
+    'partners'
 ]
 
 #AUTH_USER_MODEL = 'account.Account' 

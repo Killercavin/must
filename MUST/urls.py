@@ -76,6 +76,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+from partners.views import PartnerViewSet
 from Innovation_WebApp.views import (
     CommunityMembersView, 
     EventRegistrationViewSet,
@@ -91,6 +92,7 @@ router.register(r'events', EventRegistrationViewSet, basename='events_registrati
 router.register(r'events', EventViewSet, basename='events')
 router.register(r'communities', CommunityProfileViewSet)
 router.register(r'testimonials', TestimonialViewSet)
+router.register(r'partners', PartnerViewSet)
 
 event_router = routers.NestedDefaultRouter(router, r'events', lookup='event')
 event_router.register(r'registrations', EventRegistrationViewSet, basename='event-registrations')
