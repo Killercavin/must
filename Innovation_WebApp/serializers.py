@@ -3,12 +3,12 @@ from requests import Response, Session
 from rest_framework import serializers
 
 from Innovation_WebApp.Email import send_ticket_email
-from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile,CommunitySession,Testimonial
+from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile,CommunitySession,Testimonial,Social_media
 import boto3
 from django.conf import settings
 import uuid
 from .whatsapp_service import send_registration_confirmation
-
+from django.db import IntegrityError, DatabaseError, OperationalError
 
 
 
@@ -23,29 +23,28 @@ class SubscribedUsersSerializer(serializers.ModelSerializer):
 
 
 class EventsSerializer(serializers.ModelSerializer):
-    image_field = serializers.ImageField(write_only=True, required=False)  # To handle image upload
-    image_url = serializers.SerializerMethodField() # To return the S3 URL
+    image_field = serializers.ImageField(write_only=True, required=False)  # Handle image upload
+    image_url = serializers.SerializerMethodField()  # Return the S3 URL
 
     class Meta:
         model = Events
-        fields = ['id','name','category','description',
-                  'image_url','image_field','date','location',
-                  'organizer','contact_email','is_virtual']
+        fields = ['id', 'name', 'category', 'description',
+                  'image_url', 'image_field', 'date', 'location',
+                  'organizer', 'contact_email', 'is_virtual']
         extra_kwargs = {
-            'image_url': {'read_only': True}  # This field will store the S3 URL and is read-only
+            'image_url': {'read_only': True}  # Read-only field for S3 URL
         }
-    def get_image_url(self,obj):
-        """Return the full s3 url for the image"""
+
+    def get_image_url(self, obj):
+        """Return the full S3 URL for the image."""
         if obj.image_url:
-            if obj.image_url.startswith('http'): # if it's already a full URL
-                return obj.image_url
-            # if it's just the path,Construct the full url
+            if obj.image_url.startswith('http'):
+                return obj.image_url  # Already a full URL
             return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{obj.image_url}"
         return None
-   
 
     def create(self, validated_data):
-        # Extract `image_field` from the validated data
+        # Extract image_field from the validated data
         image_file = validated_data.pop('image_field', None)
         print("Starting creating process....")
         print(f"Image file is in validated_data:{image_file}")
@@ -91,7 +90,7 @@ class EventsSerializer(serializers.ModelSerializer):
                 event_instance.save()
 
 
-                # Set the public S3 URL in the `image` field
+                # Set the public S3 URL in the image field
                 #event_instance.image = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{filename}"
                 #event_instance.save()
             except Exception as e:
@@ -177,34 +176,64 @@ class CommunitySessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunitySession
         fields = ['day', 'start_time', 'end_time', 'meeting_type', 'location']
+        extra_kwargs = {'community':{'reequired':False}}
 
 class CommunityMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunityMember
         fields = ['id', 'name', 'email', 'joined_at']
 
+class SocialMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Social_media
+        fields = ['id','platform','url']
+
+
 class CommunityProfileSerializer(serializers.ModelSerializer):
     sessions = CommunitySessionSerializer(many=True, read_only=True)
     members = CommunityMemberSerializer(many=True, read_only=True)
+    social_media = SocialMediaSerializer(many=True)
+
     
     class Meta:
         model = CommunityProfile
         fields = [
             'id', 'name', 'community_lead', 'co_lead', 
-            'secretary', 'email', 'phone_number', 
-            'github_link', 'linkedin_link', 'description', 
-            'founding_date',  'is_recruiting', 
-            'tech_stack','members','total_members','sessions'
+            'secretary', 'email', 'phone_number', 'description', 
+            'founding_date', 'is_recruiting', 'social_media',
+            'tech_stack', 'members', 'total_members', 'sessions'
         ]
 
     def create(self, validated_data):
-        sessions_data = validated_data.pop('sessions', [])
+        social_media_data = validated_data.pop('social_media',[])
+        
         members_data = validated_data.pop('members', []) 
         community = CommunityProfile.objects.create(**validated_data)
+
+        sessions_data = self.context['request'].data.get('sessions', [])
+        #sessions_data = validated_data.pop('sessions',[])
+
+        
+
+        # create or create social media instances and link them
+        for social_data in social_media_data:
+            social_instance,_=Social_media.objects.get_or_create(**social_data)
+            community.social_media.add(social_instance)
+
         
         # Create sessions
-        for session_data in sessions_data:
-            Session.objects.create(community=community, **session_data)
+        if sessions_data:
+            for session_data in sessions_data:
+                print(f"Processing session:{session_data}")
+                session_serializer = CommunitySessionSerializer(data=session_data)
+                if session_serializer.is_valid():
+                    session_serializer.save(community=community)
+                else:
+                    print(f"Session validation errors:{session_serializer.errors}")
+
+        # Update total members
+        community.update_total_members()
+
         
         #Create members
         for member_data in members_data:
@@ -216,9 +245,18 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
         return community
 
     def update(self, instance, validated_data):
-        sessions_data = validated_data.pop('sessions', [])
+        social_media_data = validated_data.pop('social_media', [])
+        #sessions_data = validated_data.pop('sessions', [])
         members_data = validated_data.pop('members', [])
+
+
+        sessions_data = self.context['request'].data.get('sessions', [])
         
+        instance.social_media.clear()
+        for social_data in social_media_data:
+            social_instance,_=Social_media.objects.get_or_create(**social_data)
+            instance.social_media.add(social_instance)
+
         # Update community profile attributes
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -226,8 +264,15 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
 
         # Update sessions
         instance.sessions.all().delete()
-        for session_data in sessions_data:
-            Session.objects.create(community=instance, **session_data)
+        if sessions_data:
+            for session_data in sessions_data:
+                print(f"Processing session:{session_data}")
+                # Validate each session with the proper serializer
+                session_serializer = CommunitySessionSerializer(data=session_data)
+                if session_serializer.is_valid():
+                    session_serializer.save(community=instance)
+                else:
+                    print(f"Session validation errors:{session_serializer.errors}")
         
         # Update members
         instance.members.all().delete()

@@ -615,7 +615,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
                     "contact_email": event.contact_email,
                     "is_virtual": event.is_virtual
                 })
-                event_instance = Events.objects.get(name="AI for Social Good Summit")
+                #event_instance = Events.objects.get(name="AI for Social Good Summit")
                 return Response({
                     'message':'successfully registered for the event',
                     'status':'success',
@@ -799,8 +799,7 @@ class SessionCreateView(APIView):
             community = CommunityProfile.objects.get(id=community_id)
             
             # Serialize the session data
-            session_serializer = CommunitySessionSerializer(data=request.data)
-            
+            session_serializer = CommunityProfileSerializer(data=request.data, context={'request': request})
             if session_serializer.is_valid():
                 # Save the session and associate it with the community
                 session_serializer.save(community=community)

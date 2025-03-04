@@ -1,8 +1,8 @@
 from rest_framework import viewsets,status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Club,Community,ExecutiveMember,SocialMedia
-from .serializers import ClubSerializers,CommunitySerializer,ExecutiveMemberSerializer,SocialMediaSerializer
+from .models import Club,ExecutiveMember,SocialMedia
+from .serializers import ClubSerializers,ExecutiveMemberSerializer,SocialMediaSerializer
 from django.shortcuts import get_object_or_404
 # Create your views here.
 
@@ -71,78 +71,93 @@ class ClubViewSet(viewsets.ModelViewSet):
             'data':[]
         },status=status.HTTP_200_OK)
 
-class CommunityViewSet(viewsets.ModelViewSet):
-    queryset = Community.objects.all()
-    serializer_class = CommunitySerializer
-    permission_classes = [IsAuthenticated]
+# class CommunityViewSet(viewsets.ModelViewSet):
+#     queryset = Community.objects.all()
+#     serializer_class = CommunitySerializer
+#     permission_classes = [IsAuthenticated]
 
-    def list(self,request):
-        communities = self.get_queryset()
-        club_id = request.query_params.get('club_id',None)
-        if club_id:
-            communities = communities.filter(club_id=club_id)
-        serializer = self.get_serializer(communities,many=True)
-        return Response({
-            'message':'Communities retrieved successfuly',
-            'status':'success',
-            'data':serializer.data
-        },status=status.HTTP_200_OK)
+#     def list(self,request):
+#         communities = self.get_queryset()
+#         club_id = request.query_params.get('club_id',None)
+#         if club_id:
+#             communities = communities.filter(club_id=club_id)
+#         serializer = self.get_serializer(communities,many=True)
+#         return Response({
+#             'message':'Communities retrieved successfuly',
+#             'status':'success',
+#             'data':serializer.data
+#         },status=status.HTTP_200_OK)
     
-    def create(self,request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Community created successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_201_CREATED)
-        return Response({
-            'message':'failed to create the community',
-            'status':'error',
-            'data':serializer.errors
-        },status=status.HTTP_400_BAD_REQUEST)
-    
-    def retrieve(self,request,pk=None):
-        try:
-            community = self.get_object()
-            serializer = self.get_serializer(community)
-            return Response({
-                'message':'Community retrieved successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
-        except Community.DoesNotExist:
-            return Response({
-                'message':'Community not found',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_400_BAD_REQUEST)
+    # def create(self,request):
+    #     serializer = self.get_serializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response({
+    #             'message':'Community created successfully',
+    #             'status':'success',
+    #             'data':serializer.data
+    #         },status=status.HTTP_201_CREATED)
+    #     return Response({
+    #         'message':'failed to create the community',
+    #         'status':'error',
+    #         'data':serializer.errors
+    #     },status=status.HTTP_400_BAD_REQUEST)
+    # def create(self,validated_data):
+    #     social_media_data = validated_data.pop('social_media',[])
+    #     community = Community.objects.create(**validated_data)
+
+    #     for social_media_item in social_media_data:
+    #         platform = social_media_item.get('platform')
+    #         url = social_media_item.get('url')
+
+    #         SocialMedia.objects.create(
+    #             community=community,
+    #             platform=platform,
+    #             url=url
+    #         )
         
-    def update(self,request,pk=None):
-        community = self.get_object()
-        serializer = self.get_serializer(community,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Community updated succesfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
-        return Response({
-            'message':'failed to update community',
-            'status':'failed',
-            'data':serializer.errors
-        },status=status.HTTP_400_BAD_REQUEST)
+    #     return community
     
-    def destroy(self,request,pk=None):
-        community = self.get_object()
-        community.delete()
-        return Response({
-            'message':'Community deleted successfully',
-            'status':'success',
-            'data':[]
-        }, status=status.HTTP_204_NO_CONTENT)
+    # def retrieve(self,request,pk=None):
+    #     try:
+    #         community = self.get_object()
+    #         serializer = self.get_serializer(community)
+    #         return Response({
+    #             'message':'Community retrieved successfully',
+    #             'status':'success',
+    #             'data':serializer.data
+    #         },status=status.HTTP_200_OK)
+    #     except Community.DoesNotExist:
+    #         return Response({
+    #             'message':'Community not found',
+    #             'status':'failed',
+    #             'data':None
+    #         },status=status.HTTP_400_BAD_REQUEST)
+        
+    # def update(self,request,pk=None):
+    #     community = self.get_object()
+    #     serializer = self.get_serializer(community,data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response({
+    #             'message':'Community updated succesfully',
+    #             'status':'success',
+    #             'data':serializer.data
+    #         },status=status.HTTP_200_OK)
+    #     return Response({
+    #         'message':'failed to update community',
+    #         'status':'failed',
+    #         'data':serializer.errors
+    #     },status=status.HTTP_400_BAD_REQUEST)
+    
+    # def destroy(self,request,pk=None):
+    #     community = self.get_object()
+    #     community.delete()
+    #     return Response({
+    #         'message':'Community deleted successfully',
+    #         'status':'success',
+    #         'data':[]
+    #     }, status=status.HTTP_204_NO_CONTENT)
     
 class ExecutiveMemberViewSet(viewsets.ModelViewSet):
     queryset = ExecutiveMember.objects.all()

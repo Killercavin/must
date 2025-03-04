@@ -81,6 +81,7 @@ from Innovation_WebApp.views import (
     JoinCommunityView
 )
 from AboutUs import urls
+from Feedback import urls
 
 # Main router
 router = DefaultRouter()
@@ -109,5 +110,6 @@ urlpatterns = [
     
     path('', include(router.urls)),
     path('', include(event_router.urls)),
-    path('',include('AboutUs.urls'))
+    path('',include('AboutUs.urls')),
+    path('',include("Feedback.urls")),
 ]

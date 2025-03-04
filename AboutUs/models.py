@@ -10,28 +10,28 @@ class Club(models.Model):
     def __str__(self):
         return self.name
     
-class Community(models.Model):
-    MEETING_TYPES = [
-        ('VIRTUAL', 'Virtual'),
-        ('PHYSICAL', 'Physical'),
-        ('HYBRID', 'Hybrid')
-    ]
+# class Community(models.Model):
+#     MEETING_TYPES = [
+#         ('VIRTUAL', 'Virtual'),
+#         ('PHYSICAL', 'Physical'),
+#         ('HYBRID', 'Hybrid')
+#     ]
 
-    name = models.CharField(max_length=200)
-    community_lead = models.CharField(max_length=200)
-    co_lead = models.CharField(max_length=200, blank=True, null=True)
-    #treasurer = models.CharField(max_length=200, blank=True, null=True)
-    secretary = models.CharField(max_length=200, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
-    github_link = models.URLField(blank=True, null=True)
-    linkedin_link = models.URLField(blank=True, null=True)
-    description = models.TextField()
-    founding_date = models.DateField(blank=True, null=True)
-    total_members = models.IntegerField(default=0)
-    is_recruiting = models.BooleanField(default=False)
-    tech_stack = models.JSONField(blank=True, null=True)
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='communities')
+#     name = models.CharField(max_length=200)
+#     community_lead = models.CharField(max_length=200)
+#     co_lead = models.CharField(max_length=200, blank=True, null=True)
+#     #treasurer = models.CharField(max_length=200, blank=True, null=True)
+#     secretary = models.CharField(max_length=200, blank=True, null=True)
+#     email = models.EmailField(blank=True, null=True)
+#     phone_number = models.CharField(max_length=20, blank=True, null=True)
+#     github_link = models.URLField(blank=True, null=True)
+#     linkedin_link = models.URLField(blank=True, null=True)
+#     description = models.TextField()
+#     founding_date = models.DateField(blank=True, null=True)
+#     total_members = models.IntegerField(default=0)
+#     is_recruiting = models.BooleanField(default=False)
+#     tech_stack = models.JSONField(blank=True, null=True)
+#     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name='communities')
 
 
     # def update_total_members(self):
@@ -57,8 +57,8 @@ class Community(models.Model):
     #     if instance.community:
     #         instance.community.update_total_members()
 
-    def __str__(self):
-        return f"{self.name} ({self.club.name})"
+    # def __str__(self):
+    #     return f"{self.name} ({self.club.name})"
     
 class ExecutiveMember(models.Model):
     name = models.CharField(max_length=200)
@@ -66,7 +66,7 @@ class ExecutiveMember(models.Model):
     bio = models.TextField(blank=True)
     email = models.EmailField(blank=True)
     #image = models.ImageField(upload_to='executives/',blank=True,null=True)
-    community = models.ForeignKey(Community,on_delete=models.CASCADE,related_name='executives',blank=True,null=True)
+    #community = models.ForeignKey(Community,on_delete=models.CASCADE,related_name='executives',blank=True,null=True)
     
 
     def __str__(self):
@@ -75,13 +75,13 @@ class ExecutiveMember(models.Model):
 class SocialMedia(models.Model):
     platform = models.CharField(max_length=100) # eg facebook,instagram,twitter
     url = models.URLField()
-    club = models.ForeignKey(Club,on_delete=models.CASCADE,related_name='social_media',null=True,blank=True)
-    community = models.ForeignKey(Community,on_delete=models.CASCADE,related_name='social_media',null=True,blank=True)
-    executive = models.ForeignKey(ExecutiveMember,on_delete=models.CASCADE,related_name="social_media",null=True,blank=True)
+    #club = models.ForeignKey(Club,on_delete=models.CASCADE,related_name='social_media',null=True,blank=True)
+    #community = models.ForeignKey(Community,on_delete=models.CASCADE,related_name='social_media',null=True,blank=True)
+    #executive = models.ForeignKey(ExecutiveMember,on_delete=models.CASCADE,related_name="social_media",null=True,blank=True)
 
 
     def __str__(self):
-        return f'{self.platform}'
+        return f"{self.community.name} - {self.platform}"
 
 
     

@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'comments',
     'AboutUs',
+    'Feedback',
 ]
 
 #AUTH_USER_MODEL = 'account.Account' 
@@ -134,13 +135,12 @@ REST_FRAMEWORK = {
     # 'DEFAULT_PERMISSION_CLASSES': [
     #     'rest_framework.permissions.IsAuthenticated',
     # ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 
 }
 
-# AUTHENTICATION_BACKENDS = [
-#     'account.backends.EmailBackend',
-#     'django.contrib.auth.backends.ModelBackend',  # Keep the default backend as fallback
-# ]
+
 
 AUTHENTICATION_BACKENDS = ['path.to.EmailBackend']
 
@@ -196,6 +196,16 @@ DATABASES = {
         'PORT': 5432,
     }
 }
+
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',  # This stores the database file in the project root
+#     }
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

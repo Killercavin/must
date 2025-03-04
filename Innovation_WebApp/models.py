@@ -27,7 +27,7 @@ class Events(models.Model):
         ('IoT','Internate of Things')
     ]
     name = models.CharField(max_length=100)
-    category=models.CharField(max_length=100,choices=CATEGORY_CHOICE,null=False,default='Web Development')
+    category=models.CharField(max_length=50,choices=CATEGORY_CHOICE,null=False,default='Web Development')
     title = models.CharField(max_length=200 )
     description = models.TextField()
     image_url = models.URLField(default="event_images/default.png") # S3 image URL will be stored here
@@ -75,6 +75,13 @@ class EventRegistration(models.Model):
     class Meta:
         unique_together = ['email','event']
     
+class Social_media(models.Model):
+    platform = models.CharField(max_length=50)
+    url = models.URLField()
+
+    def __str__(self):
+        return f"{self.platform}"
+    
     
 class CommunityProfile(models.Model):
     MEETING_TYPES = [
@@ -90,8 +97,7 @@ class CommunityProfile(models.Model):
     secretary = models.CharField(max_length=200, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-    github_link = models.URLField(blank=True, null=True)
-    linkedin_link = models.URLField(blank=True, null=True)
+    social_media = models.ManyToManyField(Social_media,related_name='communities')
     description = models.TextField()
     founding_date = models.DateField(blank=True, null=True)
     total_members = models.IntegerField(default=0)
