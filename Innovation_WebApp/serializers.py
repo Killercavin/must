@@ -203,6 +203,14 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
             'founding_date', 'is_recruiting', 'social_media',
             'tech_stack', 'members', 'total_members', 'sessions'
         ]
+    
+    def validate_tech_stack(self,value):
+        if not isinstance(value,list):
+            raise serializers.ValidationError("Tech stack must be a list of technologies")
+        if not all(isinstance(item,str) for item in value):
+            raise serializers.ValidationError("All tech stack items must be strings")
+        return value
+    
 
     def create(self, validated_data):
         social_media_data = validated_data.pop('social_media',[])

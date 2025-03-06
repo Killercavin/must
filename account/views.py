@@ -37,6 +37,7 @@ from rest_framework import status
 from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 import traceback
+from datetime import timedelta
 class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -156,103 +157,248 @@ class LoginView(APIView):
             'access': str(refresh.access_token),
         }
 
+# class ChangePasswordView(APIView):
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = ChangePasswordSerializer
+
+#     def post(self, request):
+#         try:
+
+
+#             serializer = self.serializer_class(
+#                 data=request.data,
+#                 context={'request': request}
+#             )
+
+#             if serializer.is_valid():
+#                 serializer.save()
+#                 return Response({
+#                     'message': 'Password changed successfully',
+#                     'status': 'success',
+#                     'data':None
+#                 }, status=status.HTTP_200_OK)
+
+#             return Response({
+#                 'message':'An error occured.Please try again',
+#                 'status': 'error',
+#                 'errors': serializer.errors
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+#         except Exception as e:
+#             return Response({
+#                 'status': 'error',
+#                 'message': 'An unexpected error occurred',
+#                 'detail': str(e)
+#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+# class PasswordResetView(APIView):
+#     def post(self, request):
+#         email = request.data.get('email')
+#         try:
+#             user = User.objects.get(email=email)
+            
+#             # Generate unique reset token
+#             token = secrets.token_urlsafe(32)
+            
+#             # Create password reset request
+#             reset_request = PasswordResetRequest.objects.create(
+#                 user=user, 
+#                 token=token
+#             )
+            
+#             # Construct reset link
+#             reset_url = f"{settings.FRONTEND_URL}/reset-password/{token}"
+            
+#             # Send reset email
+#             send_mail(
+#                 'Password Reset Request',
+#                 f'Click the link to reset your password: {reset_url}',
+#                 settings.DEFAULT_FROM_EMAIL,
+#                 [email],
+#                 fail_silently=False,
+#             )
+            
+#             return Response({
+#                 'message': 'Password reset link sent to your email'
+#             }, status=status.HTTP_200_OK)
+        
+#         except User.DoesNotExist:
+#             return Response({
+#                 'error': 'No user found with this email'
+#             }, status=status.HTTP_404_NOT_FOUND)
+
+# class PasswordResetConfirmView(APIView):
+#     def post(self, request):
+#         token = request.data.get('token')
+#         new_password = request.data.get('new_password')
+        
+#         try:
+#             reset_request = PasswordResetRequest.objects.get(
+#                 token=token, 
+#                 is_used=False,
+#                 created_at__gt=timezone.now() - timezone.timedelta(hours=1)
+#             )
+            
+#             user = reset_request.user
+#             user.set_password(new_password)
+#             user.save()
+            
+#             # Mark token as used
+#             reset_request.is_used = True
+#             reset_request.save()
+            
+#             return Response({
+#                 'message': 'Password reset successful'
+#             }, status=status.HTTP_200_OK)
+        
+#         except PasswordResetRequest.DoesNotExist:
+#             return Response({
+#                 'error': 'Invalid or expired reset token'
+#             }, status=status.HTTP_400_BAD_REQUEST)
+
+from django.core.signing import TimestampSigner,BadSignature
+import uuid
+
+def generate_verification_token_for_password_reset(user):
+    signer = TimestampSigner()
+    token = signer.sign(f"{user.id}:{uuid.uuid4().hex}")
+    print(f"Genereated token:{token}")
+    return token
+
+
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ChangePasswordSerializer
 
-    def post(self, request):
+    def post(self,request):
         try:
-            serializer = self.serializer_class(
-                data=request.data,
-                context={'request': request}
+            user = request.user
+            token = generate_verification_token_for_password_reset(user)
+            change_request = PasswordResetRequest.objects.create(
+                user=user,
+                token=token,
+                old_password=request.data.get('old_password'),
+                new_password=request.data.get('new_password'),
+                expires_at=timezone.now() + timedelta(hours=1)
             )
-
-            if serializer.is_valid():
-                serializer.save()
-                return Response({
-                    'message': 'Password changed successfully',
-                    'status': 'success',
-                    'data':None
-                }, status=status.HTTP_200_OK)
-
+            print(f"Created PasswordChangeRequest:{change_request}")
+            send_password_change_email(user,token)
             return Response({
-                'message':'An error occured.Please try again',
-                'status': 'error',
-                'errors': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-
+                'message':'Please check your email to verify this request',
+                'status':'Pending',
+                'data':None
+            },status=status.HTTP_200_OK)
         except Exception as e:
             return Response({
-                'status': 'error',
-                'message': 'An unexpected error occurred',
-                'detail': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message':'Unexpected erro occured',
+                'status':'failed',
+                'data':None,
+                'detail':str(e)
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-class PasswordResetView(APIView):
-    def post(self, request):
-        email = request.data.get('email')
-        try:
-            user = User.objects.get(email=email)
-            
-            # Generate unique reset token
-            token = secrets.token_urlsafe(32)
-            
-            # Create password reset request
-            reset_request = PasswordResetRequest.objects.create(
-                user=user, 
-                token=token
-            )
-            
-            # Construct reset link
-            reset_url = f"{settings.FRONTEND_URL}/reset-password/{token}"
-            
-            # Send reset email
-            send_mail(
-                'Password Reset Request',
-                f'Click the link to reset your password: {reset_url}',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False,
-            )
-            
-            return Response({
-                'message': 'Password reset link sent to your email'
-            }, status=status.HTTP_200_OK)
-        
-        except User.DoesNotExist:
-            return Response({
-                'error': 'No user found with this email'
-            }, status=status.HTTP_404_NOT_FOUND)
 
-class PasswordResetConfirmView(APIView):
-    def post(self, request):
-        token = request.data.get('token')
-        new_password = request.data.get('new_password')
-        
+
+class VerifyPasswordChangeView(APIView):
+    permission_classes = []
+    serializer_class = ChangePasswordSerializer
+
+    def get(self, request,token):
         try:
-            reset_request = PasswordResetRequest.objects.get(
-                token=token, 
-                is_used=False,
-                created_at__gt=timezone.now() - timezone.timedelta(hours=1)
+            # verify token
+            signer = TimestampSigner()
+            print(f"Received token: {token}")
+            unsigned_value = signer.unsign(token,max_age=3600) # has a one our expiry
+            print(f"Unasigned value:{unsigned_value}")
+            user_id = int(unsigned_value.split(':')[0])
+            print(f"Extracted user_id:{user_id}")
+            user = User.objects.get(id=user_id)
+
+            # check database
+            change_request = PasswordResetRequest.objects.get(token=token,user_id=user_id)
+            print(f"Found change_request: user = {change_request,user_id},token={change_request.token},expires at={change_request.expires_at}")
+
+            if change_request.is_expired():
+                print(f"Request expired: current_time={timezone.now()},expires_at={change_request.expires_at}")
+                change_request.delete()
+                return Response({
+                    'message':'Password change session expired',
+                    'status':'failed',
+                    'data':None
+                },status=status.HTTP_400_BAD_REQUEST)
+            
+            # procced with change password
+            password_data = {
+                "old_password":change_request.old_password,
+                "new_password":change_request.new_password,
+                "confirm_password":change_request.new_password
+            }
+
+            serializer = self.serializer_class(
+                data=password_data,
+                context={'request':request,'user':change_request.user}
             )
-            
-            user = reset_request.user
-            user.set_password(new_password)
-            user.save()
-            
-            # Mark token as used
-            reset_request.is_used = True
-            reset_request.save()
-            
+            if serializer.is_valid():
+                serializer.save()
+                change_request.delete()
+                return Response({
+                    'message':'Password changed succefully',
+                    'status':'success',
+                    'data':None
+                },status=status.HTTP_200_OK)
             return Response({
-                'message': 'Password reset successful'
-            }, status=status.HTTP_200_OK)
-        
+                'message':'An error occured,please try again',
+                'status':'failed',
+                'errors':serializer.errors,
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
+        except BadSignature:
+            print(f"BadSignature:Token {token} is invalid or tempered")
+            return Response({
+                'message':'Invalid or expired verification token',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
         except PasswordResetRequest.DoesNotExist:
+            print(f"No PasswordChangeRequest found for token : {token},user_id:{user_id}")
             return Response({
-                'error': 'Invalid or expired reset token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'message':'Password change session expired',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
+        except (BadSignature,User.DoesNotExist,ValueError):
+            return Response({
+                'message':'Invalid or expired verification token',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Unexpected error: {str(e)}")
+            return Response({
+                'mesage':'An unexpected error occured',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
+       
+    
+  
+        
+def send_password_change_email(user,token):
+    """"Send email verification for password change"""
+    verification_url = f"{settings.FRONTEND_BASE_URL}/verify-password-change/{token}/"
+
+    send_mail(
+        subject="Verify Password change request",
+        message=f"Please verify your password change request by clicking on this link: {verification_url}",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        fail_silently=False
+    )
+
+            
     
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

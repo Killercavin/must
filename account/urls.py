@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib import admin
-from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView
+from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,VerifyPasswordChangeView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
@@ -15,10 +15,13 @@ urlpatterns = [
 
     # Authentication Routes
     path('logout/', LogoutView.as_view(), name='logout'),
-    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+   
 
-    path('password-reset/', PasswordResetView.as_view(), name='password_reset'),
-    path('password-reset-confirm/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    # Endpoint to verify and complete password change (GET request)
+    path('verify-password-change/<str:token>/',VerifyPasswordChangeView.as_view(),name='verify-password-change'),
+    # Endpoint to initiate password change (POST request)
+     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+  
 
     # JWT Token Routes
     path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),

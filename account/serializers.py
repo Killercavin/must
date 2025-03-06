@@ -134,10 +134,10 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        user = self.context['request'].user
+        user = self.context.get('user') or 'user' not in self.context
         
         # Verify user is authenticated
-        if not user.is_authenticated:
+        if not user.is_authenticated and 'user' not in self.context:    
             raise serializers.ValidationError({
                 "detail": "Authentication required"
             })
@@ -163,10 +163,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
     def save(self, **kwargs):
-        user = self.context['request'].user
+        user = self.context.get('user') or self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+    
 
 
 
