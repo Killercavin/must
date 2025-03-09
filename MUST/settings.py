@@ -45,7 +45,7 @@ SECRET_KEY = 'django-insecure-r@!9vmn+e&@q*s8%35r12_yb6fagra4x+*sb7+j0ik&&1an8z%
 DEBUG = True
 
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','https://7h3pspsq-8000.uks1.devtunnels.ms']  # Add 'testserver'
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','https://7h3pspsq-8000.uks1.devtunnels.ms'] 
 REST_USE_JWT = True
 # Application definition
 
