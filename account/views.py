@@ -320,7 +320,7 @@ class LogoutView(APIView):
                 'message': 'Invalid token'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-
+import json
 class UserDataView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -331,16 +331,26 @@ class UserDataView(APIView):
             # fetch user profile details
             user_profile = UserProfile.objects.get(user=user)
 
-            # Return user data
+            # Return comprehensive user data
             user_data = {
-                'id':user.id,
-                'username':user.username,
-                'email':user.email,
-                'first_name':user.first_name,
-                'last_name':user.last_name,
-                #'registration_no':user_profile.registration_no,
-                'course':user_profile.course
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'course': user_profile.course,
+                # Include all the additional fields
+                'registration_no': user_profile.registration_no,
+                'bio': user_profile.bio,
+                'tech_stacks': json.loads(user_profile.tech_stacks) if user_profile.tech_stacks else [],
+                'social_media': json.loads(user_profile.social_media) if user_profile.social_media else {},
+                'photo': request.build_absolute_uri(user_profile.photo.url) if user_profile.photo else None,
+                #'year_of_study': user_profile.year_of_study,
+                'graduation_year': user_profile.graduation_year,
+                'projects': json.loads(user_profile.projects) if user_profile.projects else [],
+                'skills': json.loads(user_profile.skills) if user_profile.skills else []
             }
+
             return Response({
                 'message':'User data retrieved successfully',
                 'status':'success',
@@ -350,6 +360,117 @@ class UserDataView(APIView):
             return Response({
                 'error':'User profile does not exist'
             },status=status.HTTP_404_NOT_FOUND)
+        
+
+class UserProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request):
+        """Get detailed user profile data"""
+        user = request.user
+        try:
+            user_profile = UserProfile.objects.get(user=user)
+
+            # Prepare the response with all available user data
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'course': user_profile.course,
+                'registration_no': user_profile.registration_no,
+                'bio': user_profile.bio,
+                'tech_stacks': user_profile.get_tech_stacks(),
+                'social_media': user_profile.get_social_media(),
+                'photo': request.build_absolute_uri(user_profile.photo.url) if user_profile.photo else None,
+                'year_of_study': user_profile.year_of_study,
+                'graduation_year': user_profile.graduation_year,
+                'projects': user_profile.get_projects(),
+                'skills': user_profile.get_skills()
+            }
+            return Response({
+                "message":"User Profile data retrieved successfully",
+                "status":"success",
+                "data":None
+            },status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response({
+                "error":"User profile does not exist"
+            },status=status.HTTP_404_NOT_FOUND)
+        
+    def put(self,request):
+        """update user profile data"""
+        user = request.user
+        try:
+            user_profile = UserProfile.objects.get(user=user)
+
+            # Update User model fields
+            if 'first_name' in request.data:
+                user.first_name = request.data['first_name']
+            if 'last_name' in request.data:
+                user.last_name = request.data['last_name']
+            if 'email' in request.data:
+                user.email = request.data['email']
+            user.save()
+
+
+            # Update UserProfile fields
+            if 'course' in request.data:
+                user_profile.course = request.data['course']
+            if 'registration_no' in request.data:
+                user_profile.registration_no = request.data['registration_no']
+            if 'bio' in request.data:
+                user_profile.bio = request.data['bio']
+            if 'tech_stacks' in request.data:
+                user_profile.set_tech_stacks(request.data['tech_stacks'])
+            if 'social_media' in request.data:
+                user_profile.set_social_media(request.data['social_media'])
+            if 'photo' in request.FILES:
+                user_profile.photo = request.FILES['photo']
+            if 'year_of_study' in request.data:
+                user_profile.year_of_study = request.data['year_of_study']
+            if 'graduation_year' in request.data:
+                user_profile.graduation_year = request.data['graduation_year']
+            if 'projects' in request.data:
+                user_profile.set_projects(request.data['projects'])
+            if 'skills' in request.data:
+                user_profile.set_skills(request.data['skills'])
+                
+            user_profile.save()
+
+            # Return updated user data
+            updated_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'course': user_profile.course,
+                'registration_no': user_profile.registration_no,
+                'bio': user_profile.bio,
+                'tech_stacks': user_profile.get_tech_stacks(),
+                'social_media': user_profile.get_social_media(),
+                'photo': request.build_absolute_uri(user_profile.photo.url) if user_profile.photo else None,
+                'year_of_study': user_profile.year_of_study,
+                'graduation_year': user_profile.graduation_year,
+                'projects': user_profile.get_projects(),
+                'skills': user_profile.get_skills()
+            }
+
+            return Response({
+                "message":"User profile updated successfully",
+                "status":"success",
+                "data":updated_data
+            },status=status.HTTP_200_OK)
+        except UserProfile.DoesNotExist:
+            return Response({
+                "error":"User profile does not exist"
+            },status=status.HTTP_404_NOT_FOUND)
+    def patch(self,request):
+        """Partial update of user profile (same functionality as PUT for this case)"""
+        return self.put(request)
+    
         
 def send_verification_email(self, user):
     token = self.generate_verification_token(user)
