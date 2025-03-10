@@ -486,10 +486,11 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from .models import OTP
+from .models import OTP,PasswordResetSession
 from .serializers import RequestPasswordResetSerializer,VerifyOTPSerializer,ResetPasswordSerializer
 from .utils import generate_otp,send_otp_email
 from django.utils import timezone
+from rest_framework.authtoken.models import Token
 
 class RequestPasswordResetView(APIView):
     def post(self,request):
@@ -519,52 +520,79 @@ class VerifyOTPView(APIView):
     def post(self,request):
         serializer = VerifyOTPSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
             otp_code = serializer.validated_data['otp_code']
 
-            user = User.objects.get(email=email)
+
             otp = OTP.objects.filter(
-                user=user,
                 otp_code=otp_code,
                 is_verified = False
             ).order_by('-created_at').first()
 
+            if not otp:
+                return Response({"message":"Invalid OTP"},Status=status.HTTP_400_BAD_REQUEST)
+            
+            # check if OTP is valid
+            if otp.is_valid():
+                user = otp.user
 
-            if otp and otp.is_valid():
-                return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+                # inInvalidate existint sessions
+                PasswordResetSession.objects.filter(
+                    user=user,
+                    is_used=False
+                ).update(is_used=True)
+
+                # Create a neww reset session
+                reset_session = PasswordResetSession.objects.create(
+                    user=user,
+                    otp=otp
+                )
+                return Response({
+                    "message":"OTP Verified Successfully.",
+                    "session_id":str(reset_session.id)
+                },status=status.HTTP_200_OK)
             return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ResetPasswordView(APIView):
     def post(self,request):
-        serializer = ResetPasswordSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            otp_code = serializer.validated_data['otp_code']
-            passwword = serializer.validated_data['password']
+        # Get the session id from the header
+        session_id = request.headers.get('X-Reset-Session')
+        if not session_id:
+            return Response({"error":"Reset session ID recquired."},status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            # Find the session
+            reset_session = PasswordResetSession.objects.get(id=session_id)
 
-            user = User.objects.get(
-                email=email
-            )
-            otp = OTP.objects.filter(
-                user=user,
-                otp_code=otp_code,
-                is_verified = False
-            ).order_by('-created_at').first()
+            # check if session is valid
+            if not  reset_session.is_valid():
+                return Response({"error":"Reset session expired or already used"},status=status.HTTP_401_UNAUTHORIZED)
+            
 
+            user = reset_session.user
 
-            if otp and otp.is_valid():
-                # update user password
-                user.set_password(passwword)
+            serializer = ResetPasswordSerializer(data=request.data)
+            if serializer.is_valid():
+                password = serializer.validated_data['password']
+
+                # update user password 
+                user.set_password(password)
                 user.save()
 
 
-                # Mark otp as veerified
-                otp.is_verified = True
+                # Mark otp and session as used
+                otp = reset_session.otp
+                otp.is_verified=True
                 otp.save()
 
-                return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
-            return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+                reset_session.is_used = True
+                reset_session.save()
+
+                return Response({"message":"Password has been reset successfuly"},status=status.HTTP_200_OK)
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        except PasswordResetSession.DoesNotExist:
+            return Response({"error": "Invalid reset session."}, status=status.HTTP_401_UNAUTHORIZED)
+    
     
 # google oauth 

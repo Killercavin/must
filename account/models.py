@@ -52,3 +52,21 @@ class OTP(models.Model):
     def is_valid(self):
         return not self.is_verified and timezone.now() <= self.expires_at
     
+
+class PasswordResetSession(models.Model):
+    id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    otp = models.ForeignKey(OTP,on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def save(self,*args,**kwargs):
+        if not self.expires_at:
+            # Set expiration time to 10 minutes from creation
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
