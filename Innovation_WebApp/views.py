@@ -777,6 +777,72 @@ class CommunityProfileViewSet(viewsets.ModelViewSet):
                 'status':'failed',
                 'data':None
             },status=status.HTTP_400_BAD_REQUEST)
+        
+    
+    def perfom_update(self,request,*args,**kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data,partial=True)
+            if serializer.is_valid():
+                self.perfom_update(serializer)
+                return Response({
+                    "message":"Community updated successfully",
+                    "status":"success",
+                    "data":serializer.data
+                },status=status.HTTP_200_OK)
+            
+            error_messages = "\n".join(
+                f"{field}:{', '.join(errors)}" for field, errors in serializer.errors.item()
+            )
+            return Response({
+                "message":f'community update failed:{error_messages}',
+                "status":"failed",
+                "data":None
+            },status=status.HTTP_400_BAD_REQUEST)
+        except CommunityProfile.DoesNotExist:
+            return Response({
+                "message":f'Community not found',
+                "status":"failed",
+                "data":None
+            },status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                "message":f'Error updating community: {str(e)}',
+                "status":"failed",
+                "data":None
+            },status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=False, methods=['get'], url_path='search-community')
+    def search_by_name(self,request,name=None):
+        try:
+            name = request.query_params.get('name',None)
+            if not name:
+                return Response({
+                    "message":"Pleasee provide a community name too search",
+                    "status":"failed",
+                    "data":None
+                },status=status.HTTP_400_BAD_REQUEST)
+            community = CommunityProfile.objects.get(name__iexact=name)
+            serializer = self.get_serializer(community)
+            return Response({
+                "name":"Community retrieved successfully",
+                "status":"success",
+                "data":serializer.data
+            },status=status.HTTP_200_OK)
+        except CommunityProfile.DoesNotExist:
+            return Response({
+                "message":f'community with name "{name}" not found',
+                "status":"failed",
+                "data":None
+            },status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                "message":f'Error retrieving community:{str(e)}',
+                "status":"failed",
+                "data":None
+            },status=status.HTTP_400_BAD_REQUEST)
+        
+        
 
 
 
