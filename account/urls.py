@@ -1,6 +1,8 @@
 from django.urls import path
 from django.contrib import admin
-from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,VerifyPasswordChangeView
+from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,
+                           LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,
+                           VerifyPasswordChangeView,RequestPasswordResetView,VerifyOTPView,ResetPasswordView)
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
@@ -32,8 +34,11 @@ urlpatterns = [
     path('get-user-data/',UserDataView.as_view(),name='get_user_data'),
 
     # retrieve all users from the database
-    path('get-all-users/',AllUsersView.as_view(),name='get_all_users')
+    path('get-all-users/',AllUsersView.as_view(),name='get_all_users'),
 
-
+    # forgot password
+    path('password-reset/request/',RequestPasswordResetView.as_view(),name='request-password-reset'),
+    path('password-reset/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    path('password-reset/reset/', ResetPasswordView.as_view(), name='reset-password'),
    
 ]

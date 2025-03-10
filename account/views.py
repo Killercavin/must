@@ -157,105 +157,7 @@ class LoginView(APIView):
             'access': str(refresh.access_token),
         }
 
-# class ChangePasswordView(APIView):
-#     permission_classes = [IsAuthenticated]
-#     serializer_class = ChangePasswordSerializer
 
-#     def post(self, request):
-#         try:
-
-
-#             serializer = self.serializer_class(
-#                 data=request.data,
-#                 context={'request': request}
-#             )
-
-#             if serializer.is_valid():
-#                 serializer.save()
-#                 return Response({
-#                     'message': 'Password changed successfully',
-#                     'status': 'success',
-#                     'data':None
-#                 }, status=status.HTTP_200_OK)
-
-#             return Response({
-#                 'message':'An error occured.Please try again',
-#                 'status': 'error',
-#                 'errors': serializer.errors
-#             }, status=status.HTTP_400_BAD_REQUEST)
-
-#         except Exception as e:
-#             return Response({
-#                 'status': 'error',
-#                 'message': 'An unexpected error occurred',
-#                 'detail': str(e)
-#             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-# class PasswordResetView(APIView):
-#     def post(self, request):
-#         email = request.data.get('email')
-#         try:
-#             user = User.objects.get(email=email)
-            
-#             # Generate unique reset token
-#             token = secrets.token_urlsafe(32)
-            
-#             # Create password reset request
-#             reset_request = PasswordResetRequest.objects.create(
-#                 user=user, 
-#                 token=token
-#             )
-            
-#             # Construct reset link
-#             reset_url = f"{settings.FRONTEND_URL}/reset-password/{token}"
-            
-#             # Send reset email
-#             send_mail(
-#                 'Password Reset Request',
-#                 f'Click the link to reset your password: {reset_url}',
-#                 settings.DEFAULT_FROM_EMAIL,
-#                 [email],
-#                 fail_silently=False,
-#             )
-            
-#             return Response({
-#                 'message': 'Password reset link sent to your email'
-#             }, status=status.HTTP_200_OK)
-        
-#         except User.DoesNotExist:
-#             return Response({
-#                 'error': 'No user found with this email'
-#             }, status=status.HTTP_404_NOT_FOUND)
-
-# class PasswordResetConfirmView(APIView):
-#     def post(self, request):
-#         token = request.data.get('token')
-#         new_password = request.data.get('new_password')
-        
-#         try:
-#             reset_request = PasswordResetRequest.objects.get(
-#                 token=token, 
-#                 is_used=False,
-#                 created_at__gt=timezone.now() - timezone.timedelta(hours=1)
-#             )
-            
-#             user = reset_request.user
-#             user.set_password(new_password)
-#             user.save()
-            
-#             # Mark token as used
-#             reset_request.is_used = True
-#             reset_request.save()
-            
-#             return Response({
-#                 'message': 'Password reset successful'
-#             }, status=status.HTTP_200_OK)
-        
-#         except PasswordResetRequest.DoesNotExist:
-#             return Response({
-#                 'error': 'Invalid or expired reset token'
-#             }, status=status.HTTP_400_BAD_REQUEST)
 
 from django.core.signing import TimestampSigner,BadSignature
 import uuid
@@ -578,4 +480,91 @@ class AllUsersView(APIView):
         
 
 
+# forgot password view
+
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.contrib.auth.models import User
+from .models import OTP
+from .serializers import RequestPasswordResetSerializer,VerifyOTPSerializer,ResetPasswordSerializer
+from .utils import generate_otp,send_otp_email
+from django.utils import timezone
+
+class RequestPasswordResetView(APIView):
+    def post(self,request):
+        serializer = RequestPasswordResetSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+
+
+            # Invalidate any existing OTPs for this user
+            OTP.objects.filter(user=user,is_verified=False).update(expires_at=timezone.now())
+
+
+            # Generate and save a neww otp
+            otp_code = generate_otp()
+            OTP.objects.create(user=user,otp_code=otp_code)
+
+
+            # Send otp email
+            send_otp_email(user,otp_code)
+
+
+            return Response({"message":"OTP has been sent to your email."},status=status.HTTP_200_OK)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+class VerifyOTPView(APIView):
+    def post(self,request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp_code = serializer.validated_data['otp_code']
+
+            user = User.objects.get(email=email)
+            otp = OTP.objects.filter(
+                user=user,
+                otp_code=otp_code,
+                is_verified = False
+            ).order_by('-created_at').first()
+
+
+            if otp and otp.is_valid():
+                return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+            return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ResetPasswordView(APIView):
+    def post(self,request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            otp_code = serializer.validated_data['otp_code']
+            passwword = serializer.validated_data['password']
+
+            user = User.objects.get(
+                email=email
+            )
+            otp = OTP.objects.filter(
+                user=user,
+                otp_code=otp_code,
+                is_verified = False
+            ).order_by('-created_at').first()
+
+
+            if otp and otp.is_valid():
+                # update user password
+                user.set_password(passwword)
+                user.save()
+
+
+                # Mark otp as veerified
+                otp.is_verified = True
+                otp.save()
+
+                return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+            return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 # google oauth 

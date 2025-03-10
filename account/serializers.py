@@ -170,5 +170,40 @@ class ChangePasswordSerializer(serializers.Serializer):
     
 
 
+# forgot password
+
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from .models import OTP
+
+class RequestPasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self,value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exists")
+        return value
+    
+
+class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp_code = serializers.CharField(max_length=6,min_length=6)
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp_code = serializers.CharField(max_length=6, min_length=6)
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self,data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"password": "Password fields didn't match."})
+        
+        # validate password's strength
+        validate_password(data['password'])
+
+        return data
+
+
 
 
