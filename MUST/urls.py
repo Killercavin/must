@@ -88,7 +88,7 @@ from Innovation_WebApp.views import (
 )
 
 router = DefaultRouter()
-router.register(r'events', EventRegistrationViewSet, basename='events_registration')
+router.register(r'regs', EventRegistrationViewSet, basename='events_registration')
 router.register(r'events', EventViewSet, basename='events')
 router.register(r'communities', CommunityProfileViewSet)
 router.register(r'testimonials', TestimonialViewSet)

@@ -324,6 +324,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
                 'status':'failed',
                 'data':None
             })
+        
     
     def list(self,request,*args,**kwargs):
         try:
@@ -361,37 +362,92 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
                 'status':'failed',
                 'data':None
             },status=status.HTTP_400_BAD_REQUEST)
-        
-
-    def create(self, request, *args, **kwargs):
+    def create(self,request,*args,**kwags):
         event_pk = self.kwargs.get('event_pk')
         if not event_pk:
             return Response({
-                'message': 'Event ID is missing in the request URL',
-                'status': 'failed',
-                'data': None
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
+                'message':'Event ID is missing in the request URL',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get email from request data
+        email = request.data.get('email')
+        if not email:
+            return Response({
+                'message':'Email is required for registration',
+                'status':'failed',
+                'data':None
+            },status=status.HTTP_400_BAD_REQUEST)
+        
         mutable_data = request.data.copy()
         mutable_data['event'] = event_pk
-        serializer = self.get_serializer(data=mutable_data)
+
+        serializer = self.get_serializer(data = mutable_data)
 
         if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Successfully registered for the event',
-                'status': 'Success',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        
+            try:
+                # save the registration
+                registration = serializer.save()
+
+                # Retrieve event details
+                event = Events.objects.get(pk=event_pk)
+
+                # Queue WhatsApp notification
+                send_registration_confirmation.delay(str(registration.uid))
+                print({
+                    "name": event.name,
+                    "category": event.category,
+                    "description": event.description,
+                    "date": event.date,
+                    "location": event.location,
+                    "organizer": event.organizer,
+                    "contact_email": event.contact_email,
+                    "is_virtual": event.is_virtual
+                })
+                #event_instance = Events.objects.get(name="AI for Social Good Summit")
+                return Response({
+                    'message':'successfully registered for the event',
+                    'status':'success',
+                    'data':[
+                        {
+                            "name":event.name,
+                            "category":event.category,
+                            "description":event.description,
+                            #'image_url': event_instance.image_url(),
+                            "date": event.date.isoformat() if hasattr(event.date, 'isoformat') else str(event.date),
+                            "location":event.location,
+                            "organizer":event.organizer,
+                            "contact_email":event.contact_email,
+                            "is_virtual":event.is_virtual
+                        }
+                    ]
+                },status=status.HTTP_200_OK)
+            except ValidationError as e:
+                return Response({
+                    'message':str(e),
+                    'status':'failed',
+                    'date':None
+                },status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                import traceback
+                traceback.print_exc() # print full error traceback
+                print(f'Error during registration process: {str(e)}')
+                return Response({
+                    'message':'An error occured during registration',
+                    'status':'failed',
+                    'data':None
+                },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
         error_messages = "\n".join(
-            f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
+            f"{field}:{', '.join(errors)}" for field,errors in serializer.errors.items()
         )
         return Response({
-            'message': f"Event Registration failed: {error_messages}",
-            'status': 'failed',
-            'data': None
-        }, status=status.HTTP_400_BAD_REQUEST)
+            'message':f'Event registration failed:{error_messages}',
+            'status':'failed',
+            'data':None
+        },status=status.HTTP_400_BAD_REQUEST)
+    
     
 
     
@@ -432,6 +488,186 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
             ))
     
         return response
+    
+# class EventRegistrationViewSet(viewsets.ModelViewSet):
+#     queryset = EventRegistration.objects.all()
+#     serializer_class = EventRegistrationSerializer
+
+#     def get_queryset(self):
+#         event_pk = self.kwargs.get('event_pk')
+#         if event_pk:
+#             return EventRegistration.objects.filter(event_id=event_pk)
+#         return super().get_queryset()
+    
+#     @action(detail=False, methods=['get'], url_path='user-registrations')
+#     def get_user_registration(self, request):
+#         try:
+#             user_email = request.user.email  # Get the authenticated user's email
+
+#             registrations = EventRegistration.objects.filter(email=user_email)
+
+#             if not registrations.exists():
+#                 return Response({
+#                     'message': 'No registrations found for this user',
+#                     'status': 'failed',
+#                     'data': None
+#                 }, status=status.HTTP_404_NOT_FOUND)
+
+#             serializer = self.get_serializer(registrations, many=True)
+#             return Response({
+#                 'message': 'User registrations retrieved successfully',
+#                 'status': 'success',
+#                 'data': serializer.data
+#             }, status=status.HTTP_200_OK)
+
+#         except Exception as e:
+#             return Response({
+#                 'message': f'Error retrieving registrations: {str(e)}',
+#                 'status': 'failed',
+#                 'data': None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+#     # @action(detail=False, methods=['get'], url_path='user-registrations')
+#     # def get_user_registration(self,request,event_pk=None):
+#     #     try:
+#     #         if not event_pk:
+#     #             return Response({
+#     #                 'message':'Event ID missing',
+#     #                 'status':'failed',
+#     #                 'data':None
+#     #             },status=status.HTTP_400_BAD_REQUEST)
+#     #         registration = EventRegistration.objects.filter(
+#     #             event_id=event_pk,
+#     #             email=request.user.email
+#     #         ).first()
+
+#     #         if not registration:
+#     #             return Response({
+#     #                 'message':'No registration found for this user in this event',
+#     #                 'status':'failed',
+#     #                 'data':None
+#     #             },status=status.HTTP_400_BAD_REQUEST)
+#     #         serializer = self.get_serializer(registration)
+#     #         return Response({
+#     #             'message':'User registration details retrieved successfully',
+#     #             'status':'success',
+#     #             'data':serializer.data
+#     #         },status=status.HTTP_200_OK)
+#     #     except Exception as e:
+#     #         return Response({
+#     #             'message':f'Error retrieving registration: {str(e)}',
+#     #             'status':'failed',
+#     #             'data':None
+#     #         })
+    
+#     def list(self,request,*args,**kwargs):
+#         try:
+#             queryset = self.filter_queryset(self.get_queryset())
+#             page = self.paginate_queryset(queryset)
+
+#             if page is not None:
+#                 serializer = self.get_serializer(page,many=True)
+#                 paginated_data = self.paginator.get_paginated_response(serializer.data)
+
+#                 return Response({
+#                     'message':'Event registrations retrieved successfully',
+#                     'status':'success',
+#                     'data':{
+#                         'count':paginated_data.data['count'],
+#                         'next':paginated_data.data['next'],
+#                         'previous':paginated_data.data['previous'],
+#                         'results':paginated_data.data['results']
+#                     }
+#                 },status=status.HTTP_200_OK)
+#             serializer = self.get_serializer(queryset,many=True)
+#             return Response({
+#                 'message':'Event registrations retrieved successfully',
+#                 'status':'success',
+#                 'data':{
+#                     'count':len(serializer.data),
+#                     'next':None,
+#                     'previous':None,
+#                     'data':serializer.data
+#                 }
+#             },status=status.HTTP_200_OK)
+#         except Exception as e:
+#             return Response({
+#                 'message':f'Error retreiving registrations:{str(e)}',
+#                 'status':'failed',
+#                 'data':None
+#             },status=status.HTTP_400_BAD_REQUEST)
+        
+
+#     def create(self, request, *args, **kwargs):
+#         event_pk = self.kwargs.get('event_pk')
+#         if not event_pk:
+#             return Response({
+#                 'message': 'Event ID is missing in the request URL',
+#                 'status': 'failed',
+#                 'data': None
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+
+#         mutable_data = request.data.copy()
+#         mutable_data['event'] = event_pk
+#         serializer = self.get_serializer(data=mutable_data)
+
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({
+#                 'message': 'Successfully registered for the event',
+#                 'status': 'Success',
+#                 'data': serializer.data
+#             }, status=status.HTTP_200_OK)
+        
+#         error_messages = "\n".join(
+#             f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
+#         )
+#         return Response({
+#             'message': f"Event Registration failed: {error_messages}",
+#             'status': 'failed',
+#             'data': None
+#         }, status=status.HTTP_400_BAD_REQUEST)
+    
+
+    
+#     @action(detail=False, methods=['get'], url_path='export')
+#     def export_registrations(self, request, event_pk=None):
+#         if not event_pk:
+#             return Response({"error": "Event ID is required"}, status=400)
+        
+#         registrations = EventRegistration.objects.filter(event_id=event_pk)
+    
+#         response = HttpResponse(content_type='text/csv')
+#         response['Content-Disposition'] = f'attachment; filename="event_{event_pk}_registrations.csv"'
+    
+#         writer = csv.writer(response)
+#         writer.writerow((
+#             'UID', 
+#             'Full Name', 
+#             'Email', 
+#             'Course',
+#             'Educational Level',
+#             'Phone Number',
+#             'Expectations',
+#             'Registration Date',
+#             'Ticket Number'
+#         ))
+    
+#         for registration in registrations:
+#             writer.writerow((
+#                 registration.uid, 
+#                 registration.full_name, 
+#                 registration.email, 
+#                 registration.course,
+#                 registration.educational_level,
+#                 registration.phone_number,
+#                 registration.expectations,
+#                 registration.registration_timestamp,
+#                 registration.ticket_number
+#             ))
+    
+#         return response
 
 class CommunityProfileViewSet(viewsets.ModelViewSet):
     queryset = CommunityProfile.objects.all().order_by('id')
