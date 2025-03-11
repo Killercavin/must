@@ -1,12 +1,10 @@
-from django.urls import path,include
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FeedBackViewSet
-
+from .views import FeedbackViewSet
 
 router = DefaultRouter()
-router.register(r'feedback',FeedBackViewSet)
-
+router.register(r'feedbacks',FeedbackViewSet)
 
 urlpatterns = [
-    path('feedback/',include(router.urls))
+    path('', include(router.urls)),
 ]
