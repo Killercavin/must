@@ -4,8 +4,6 @@ from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutVie
                            LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,
                            VerifyPasswordChangeView,RequestPasswordResetView,VerifyOTPView,ResetPasswordView,UserProfileUpdateView)
 from .views import DeleteAccountView
-from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView
-
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
