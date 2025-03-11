@@ -3,7 +3,7 @@ from requests import Response, Session
 from rest_framework import serializers
 
 from Innovation_WebApp.Email import send_ticket_email
-from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile,CommunitySession,Testimonial,Social_media
+from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile,CommunitySession,Social_media
 import boto3
 from django.conf import settings
 import uuid
@@ -291,25 +291,6 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
         instance.update_total_members()
         
         return instance
-
-class TestimonialSerializer(serializers.ModelSerializer):
-    #author_username = serializers.ReadOnlyField(source='author.username')
-    
-    class Meta:
-        model = Testimonial
-        # fields = [
-        #     'id', 'author_username', 'community', 
-        #     'content', 'rating', 'created_at'
-        # ]
-        # read_only_fields = ['author', 'created_at']
-
-# class CommunityCategorySerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = CommunityCategory
-#         fields = ['id', 'name', 'description']
-
-
-
 
 class CommunityJoinSerializer(serializers.ModelSerializer):
     class Meta:

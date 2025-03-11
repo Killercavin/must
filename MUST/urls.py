@@ -12,7 +12,6 @@ from Innovation_WebApp.views import (
     EventRegistrationViewSet,
     CommunityProfileViewSet,
     EventViewSet,
-    TestimonialViewSet,
     SessionCreateView,
     JoinCommunityView
 )
@@ -23,7 +22,6 @@ from Feedback import urls
 router = DefaultRouter()
 router.register(r'event-registrations', EventRegistrationViewSet, basename='events_registration')
 router.register(r'events', EventViewSet, basename='events')
-router.register(r'testimonials', TestimonialViewSet)
 
 
 community_viewset = CommunityProfileViewSet.as_view({
@@ -67,4 +65,6 @@ urlpatterns = [
     path('', include(event_router.urls)),
     path('',include('AboutUs.urls')),
     path('',include("Feedback.urls")),
+
+    path('testimonies/', include('testimonials.urls')),
 ]

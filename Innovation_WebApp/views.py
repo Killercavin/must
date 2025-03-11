@@ -3,8 +3,8 @@ from django.conf import settings
 from django.http import Http404, HttpResponse, JsonResponse
 from rest_framework import viewsets, views, status,permissions
 from rest_framework.response import Response
-from .serializers import CommunityJoinSerializer, CommunityMemberSerializer, CommunitySessionSerializer, SubscribedUsersSerializer, EventsSerializer,EventRegistrationSerializer,CommunityProfileSerializer,TestimonialSerializer
-from .models import SubscribedUsers, Events,EventRegistration,CommunityProfile,Testimonial
+from .serializers import CommunityJoinSerializer, CommunityMemberSerializer, CommunitySessionSerializer, SubscribedUsersSerializer, EventsSerializer,EventRegistrationSerializer,CommunityProfileSerializer
+from .models import SubscribedUsers, Events,EventRegistration,CommunityProfile
 from django.core.mail import send_mail, EmailMessage
 from rest_framework.permissions import IsAdminUser,IsAuthenticated
 from django.core.validators import validate_email
@@ -497,81 +497,6 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
                 'data':None
             },status=status.HTTP_400_BAD_REQUEST)
         
-
-    # def create(self, request, *args, **kwargs):
-    #     event_pk = self.kwargs.get('event_pk')
-    #     if not event_pk:
-    #         return Response({
-    #             'message': 'Event ID is missing in the request URL',
-    #             'status': 'failed',
-    #             'data': None
-    #         }, status=status.HTTP_401_UNAUTHORIZED)
-        
-    #     # Get email from request data
-    #     email = request.data.get('email')
-    #     if not email:
-    #         return Response({
-    #             'message': 'Email is required for registration',
-    #             'status': 'failed',
-    #             'data': None
-    #         }, status=status.HTTP_400_BAD_REQUEST)
-        
-    #     # Check for existing registrations using email and event_id
-    #     existing_registrations = EventRegistration.objects.filter(
-    #         event_id=event_pk,
-    #         email=email
-    #     ).exists()
-
-    #     if existing_registrations:
-    #         return Response({
-    #             'message': 'You have already registered for this event',
-    #             'status': 'failed',
-    #             'data': None
-    #         }, status=status.HTTP_400_BAD_REQUEST)
-
-    #     mutable_data = request.data.copy()
-    #     mutable_data['event'] = event_pk
-
-    #     serializer = self.get_serializer(data=mutable_data)
-
-    #     if serializer.is_valid():
-    #         try:
-    #             # Save the registration
-    #             registration = serializer.save()
-                
-    #             # Queue WhatsApp notification
-    #             send_registration_confirmation.delay(str(registration.uid))
-                
-    #             return Response({
-    #                 'message': 'Successfully registered for the event',
-    #                 'status': 'success',
-    #                 'data': serializer.data
-    #             }, status=status.HTTP_200_OK)
-                
-    #         except ValidationError as e:
-    #             return Response({
-    #                 'message': str(e),
-    #                 'status': 'failed',
-    #                 'data': None
-    #             }, status=status.HTTP_400_BAD_REQUEST)
-                
-    #         except Exception as e:
-    #             # Log the error for debugging
-    #             print(f"Error during registration process: {str(e)}")
-    #             return Response({
-    #                 'message': 'An error occurred during registration',
-    #                 'status': 'failed',
-    #                 'data': None
-    #             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-    #     error_messages = "\n".join(
-    #         f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
-    #     )
-    #     return Response({
-    #         'message': f"Event Registration failed: {error_messages}",
-    #         'status': 'failed',
-    #         'data': None
-    #     }, status=status.HTTP_400_BAD_REQUEST)
     def create(self,request,*args,**kwags):
         event_pk = self.kwargs.get('event_pk')
         if not event_pk:
@@ -842,22 +767,7 @@ class CommunityProfileViewSet(viewsets.ModelViewSet):
                 "data":None
             },status=status.HTTP_400_BAD_REQUEST)
         
-        
-
-
-
-class TestimonialViewSet(viewsets.ModelViewSet):
-    queryset = Testimonial.objects.filter(is_approved=True)
-    serializer_class = TestimonialSerializer
-    #permission_classes = [permissions.IsAuthenticated]
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-
-
-
-
+    
 class SessionCreateView(APIView):
     def post(self, request, community_id):
         try:

@@ -574,7 +574,9 @@ class AllUsersView(APIView):
                         'email':user.email,
                         'first_name':user.first_name,
                         'last_name':user.last_name,
-                        'course':user.email
+                        'course':user_profile.course,
+                        'photo': request.build_absolute_uri(user_profile.photo.url) if user_profile.photo else None,
+
                     }
                     user_data_list.append(user_data)
                 except UserProfile.DoesNotExist:

@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     'comments',
     'AboutUs',
     'Feedback',
+    'testimonials',
 ]
 
 #AUTH_USER_MODEL = 'account.Account' 

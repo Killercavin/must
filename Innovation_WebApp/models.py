@@ -42,11 +42,6 @@ class Events(models.Model):
         return self.title
     
 
-   
-
-
-    
-
 class EventRegistration(models.Model):
 
 
@@ -149,20 +144,6 @@ class CommunitySession(models.Model):
     def __str__(self):
         return f"{self.community.name} - {self.get_day_display()} Session"
     
-class Testimonial(models.Model):
-    #author = models.ForeignKey(User, on_delete=models.CASCADE)
-    community = models.ForeignKey(CommunityProfile, on_delete=models.SET_NULL, null=True, blank=True)
-    content = models.TextField()
-    rating = models.IntegerField(
-        validators=[MinValueValidator(1), MaxValueValidator(5)],
-        null=True,
-        blank=True
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_approved = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Testimonial by {self.author.username}"
     
 
 class CommunityMember(models.Model):

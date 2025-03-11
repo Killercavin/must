@@ -8,7 +8,6 @@ admin.site.register(EventRegistration)
 #admin.site.register(CommunityCategory)
 admin.site.register(CommunityProfile)
 admin.site.register(CommunitySession)
-admin.site.register(Testimonial)
 
 
 
