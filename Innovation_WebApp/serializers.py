@@ -152,7 +152,6 @@ class EventsSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
         class Meta:

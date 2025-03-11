@@ -83,6 +83,8 @@ INSTALLED_APPS = [
     'AboutUs',
     'Feedback',
     'testimonials',
+    'partners'
+
 ]
 
 #AUTH_USER_MODEL = 'account.Account' 
@@ -291,7 +293,7 @@ AWS_STORAGE_BUCKET_NAME = secrets['AWS_STORAGE_BUCKET_NAME']
 AWS_S3_REGION_NAME = ['AWS_S3_REGION_NAME']
 AWS_S3_FILE_OVERWRITE = secrets['AWS_S3_FILE_OVERWRITE']
 AWS_S3_SIGNATURE_VERSION = secrets['AWS_S3_SIGNATURE_VERSION']
-AWS_REGION = ['AWS_REGION']
+AWS_REGION = "ap-southeast-2"
 
  
 

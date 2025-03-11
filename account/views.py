@@ -602,6 +602,24 @@ class AllUsersView(APIView):
             },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
+from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import permission_classes
+from .serializers import UserSerializer  # Ensure you have a UserSerializer
+
+User = get_user_model()
+
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])  # Require authentication to access
+def get_all_users(request):
+    users = User.objects.all()  # Get all users
+    serializer = UserSerializer(users, many=True)  # Serialize users
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
 # forgot password view
 
@@ -719,3 +737,27 @@ class ResetPasswordView(APIView):
     
     
 # google oauth 
+User = get_user_model()
+
+@api_view(['GET'])
+# @permission_classes([IsAuthenticated])  # Ensure authentication is required
+def get_all_users(request):
+    users = User.objects.all()  # Get all users
+    serializer = UserSerializer(users, many=True)  # Serialize all fields
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+class DeleteAccountView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        # Delete the authenticated user's account
+        user = request.user
+        user.delete()
+        return Response(
+            {"detail": "User account deleted successfully."},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+

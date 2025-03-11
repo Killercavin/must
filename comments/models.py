@@ -1,15 +1,30 @@
 from django.db import models
-from Innovation_WebApp.models import Events
 from django.contrib.auth.models import User
+from Innovation_WebApp.models import Events
 
-# Create your models here.
+# class Comment(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name="comments")
+#     content = models.TextField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"{self.user.username} on {self.event.title}"
+
 
 class Comment(models.Model):
-    post = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
-    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    event = models.ForeignKey(Events, on_delete=models.CASCADE, related_name='comments')
+    content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    # New field for replies. A comment with a non-null parent is a reply.
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='replies'
+    )
 
     def __str__(self):
-        return f'{self.user.username} commented on {self.post.title}'
+        return f"{self.user} - {self.content[:20]}"

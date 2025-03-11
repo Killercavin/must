@@ -3,10 +3,15 @@ from django.contrib import admin
 from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,
                            LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,
                            VerifyPasswordChangeView,RequestPasswordResetView,VerifyOTPView,ResetPasswordView,UserProfileUpdateView)
+from .views import DeleteAccountView
+from account.views import ChangePasswordView, CustomTokenRefreshView, LogoutView, PasswordResetConfirmView, PasswordResetView, RegisterView,LoginView, UserDataView,VerifyEmailView,EmailVerificationView
+
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+
+from .views import get_all_users
 
 urlpatterns = [
     # Authentication Routes
@@ -26,12 +31,15 @@ urlpatterns = [
   
 
     # JWT Token Routes
-    path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/',CustomTokenRefreshView.as_view(), name='token_refresh'),
     #path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     
 
     # get user data with access tokens
     path('get-user-data/',UserDataView.as_view(),name='get_user_data'),
+    
+    path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
+
 
     # retrieve all users from the database
     path('get-all-users/',AllUsersView.as_view(),name='get_all_users'),

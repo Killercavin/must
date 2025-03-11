@@ -7,21 +7,26 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+from partners.views import PartnerViewSet
 from Innovation_WebApp.views import (
     CommunityMembersView, 
     EventRegistrationViewSet,
     CommunityProfileViewSet,
     EventViewSet,
     SessionCreateView,
-    JoinCommunityView
+    JoinCommunityView,
 )
 from AboutUs import urls
 from Feedback import urls
-
+from testimonials.views import TestimonialViewSet
 # Main router
 router = DefaultRouter()
 router.register(r'event-registrations', EventRegistrationViewSet, basename='events_registration')
 router.register(r'events', EventViewSet, basename='events')
+router.register(r'communities', CommunityProfileViewSet)
+router.register(r'testimonials', TestimonialViewSet)
+router.register(r'partners', PartnerViewSet)
+
 
 
 community_viewset = CommunityProfileViewSet.as_view({
@@ -69,4 +74,6 @@ urlpatterns = [
 
 
     path('', include('Feedback.urls')),
+    path('comments/', include('comments.urls'))
+
 ]

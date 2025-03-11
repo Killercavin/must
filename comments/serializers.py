@@ -1,31 +1,30 @@
 from rest_framework import serializers
 from .models import Comment
-from django.contrib.auth.models import User
+
+
+# class CommentSerializer(serializers.ModelSerializer):
+#     user = serializers.ReadOnlyField(source='user.username')
+
+#     class Meta:
+#         model = Comment
+#         fields = ['id', 'user', 'event', 'content', 'created_at']
+
+
+
 
 class CommentSerializer(serializers.ModelSerializer):
-    post = serializers.IntegerField(write_only=True)
-  # For creating comments
-    user = serializers.UUIDField(write_only=True)  # Use UUIDField for user_id
-    id = serializers.IntegerField(write_only=True)  # Use UUIDField for user_id
+    user = serializers.ReadOnlyField(source='user.username')
+    # Nested replies. This will show replies for each comment.
+    replies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'user', 'event', 'content', 'created_at', 'parent', 'replies']
+        read_only_fields = ['user', 'created_at', 'replies']
+
+    def get_replies(self, obj):
+        # You might want to limit recursion depth in a production system.
+        serializer = CommentSerializer(obj.replies.all(), many=True, context=self.context)
+        return serializer.data
     
-    class Meta:
-        model = Comment
-        fields = ['id', 'post', 'user', 'text', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-
-class CommentUpdateSerializer(serializers.ModelSerializer):
-    user = serializers.UUIDField(write_only=True)
-    id = serializers.IntegerField(write_only=True)
-
-    class Meta:
-        model = Comment
-        fields = ['id', 'user', 'text', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
-
-    def validate_user(self, value):
-        try:
-            # Convert UUID to NormalUser instance
-            return User.objects.get(user_id=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("User not found.")
+    
