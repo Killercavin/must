@@ -35,4 +35,4 @@ class Partner(models.Model):
     target_audience = models.TextField()
     
     def __str__(self):
-        return self.name
+        return self.name    

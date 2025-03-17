@@ -40,6 +40,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 s3_client = boto3.client('s3')
 from .tasks import send_registration_confirmation
+from Club.models import Club
 class EventPagination(PageNumberPagination):
     page_size = 10 
     page_size_query_param = 'page_size'
@@ -568,29 +569,38 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
     
         return response
 
+DEFAULT_CLUB_ID = 1  
 class CommunityProfileViewSet(viewsets.ModelViewSet):
     queryset = CommunityProfile.objects.all().order_by('id')
     serializer_class = CommunityProfileSerializer
 
-    def create(self,request,*args,**kwags):
+    def perform_create(self,serializer):
+        # If club is not provided, use the default club
+        if 'club' not in serializer.validated_data:
+            club = get_object_or_404(Club, id=DEFAULT_CLUB_ID)
+            serializer.save(club=club)
+        else:
+            serializer.save()
+
+    def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
             if serializer.is_valid():
                 self.perform_create(serializer)
                 return Response({
-                    'message':'Community Created successfully',
-                    'status':'success',
-                    'data':serializer.data
-                },status=status.HTTP_201_CREATED)
+                    'message': 'Community Created successfully',
+                    'status': 'success',
+                    'data': serializer.data
+                }, status=status.HTTP_201_CREATED)
 
             error_messages = "\n".join(
-                f"{field}:{', '.join(errors)}" for field, errors in serializer.errors.items()
+                f"{field}: {', '.join(errors)}" for field, errors in serializer.errors.items()
             )
             return Response({
-                'message':f'Community Creation failed: {error_messages}',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_400_BAD_REQUEST)
+                'message': f'Community Creation failed: {error_messages}',
+                'status': 'failed',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({
                 'message': f'Error creating community: {str(e)}',

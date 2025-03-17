@@ -10,6 +10,8 @@ from django.conf import settings
 import uuid
 from .whatsapp_service import send_registration_confirmation
 from django.db import IntegrityError, DatabaseError, OperationalError
+from Club.models import Club,ExecutiveMember
+from Club.serializers import ExecutiveMemberSerializer,ClubSerializer
 
 # from AboutUs.models import ExecutiveMember
 
@@ -194,8 +196,12 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
     members = CommunityMemberSerializer(many=True, read_only=True)
     social_media = SocialMediaSerializer(many=True)
 
-    # community_lead = serializers.PrimaryKeyRelatedField(queryset=ExecutiveMember.objects.all(), allow_null=True)
-    # co_lead = serializers.PrimaryKeyRelatedField(queryset=ExecutiveMember.objects.all(), allow_null=True)   
+    club = ClubSerializer(read_only=True)
+    club_id = serializers.PrimaryKeyRelatedField(queryset=Club.objects.all(), write_only=True, source='club')
+
+    community_lead_details = ExecutiveMemberSerializer(source='community_lead', read_only=True)
+    co_lead_details = ExecutiveMemberSerializer(source='co_lead', read_only=True)
+    secretary_details = ExecutiveMemberSerializer(source='secretary', read_only=True)
 
     
     class Meta:

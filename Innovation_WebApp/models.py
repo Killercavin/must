@@ -6,7 +6,7 @@ from django.core.validators import EmailValidator,MinValueValidator, MaxValueVal
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import hashlib
-
+from Club.models import Club, ExecutiveMember 
 #from django.contrib.auth.models import User
 
 class SubscribedUsers(models.Model):
@@ -85,14 +85,29 @@ class CommunityProfile(models.Model):
         ('PHYSICAL', 'Physical'),
         ('HYBRID', 'Hybrid')
     ]
-    #club = models.ForeignKey('AboutUs.Club',on_delete=models.CASCADE, related_name='communities',null=True, blank=True)
     name = models.CharField(max_length=200)
-    # community_lead = models.ForeignKey('AboutUs.ExecutiveMember', on_delete=models.SET_NULL, null=True, related_name='lead_communities')
-    # co_lead = models.ForeignKey('AboutUs.ExecutiveMember', on_delete=models.SET_NULL, null=True, related_name='co_lead_communities')
-    community_lead = models.CharField(max_length=200)
-    co_lead = models.CharField(max_length=200, blank=True, null=True)
-    #treasurer = models.CharField(max_length=200, blank=True, null=True)
-    secretary = models.CharField(max_length=200, blank=True, null=True)
+    club = models.ForeignKey('Club.Club',  related_name='communities', on_delete=models.CASCADE)
+    community_lead = models.ForeignKey(
+        'Club.ExecutiveMember', 
+        related_name='communities',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    co_lead = models.ForeignKey(
+       'Club.ExecutiveMember', 
+        related_name='co_leads',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    secretary = models.ForeignKey(
+        ExecutiveMember, 
+        on_delete=models.SET_NULL, 
+        related_name='secretary_communities',
+        null=True,
+        blank=True
+    )
     email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     social_media = models.ManyToManyField(Social_media,related_name='communities')
@@ -120,10 +135,23 @@ class CommunityProfile(models.Model):
     def get_sessions(self):
         return self.sessions.all()
     
+       # Convenience methods to get executive information
+    def get_lead_email(self):
+        return self.community_lead.email if self.community_lead else None
+    
+    def get_co_lead_email(self):
+        return self.co_lead.email if self.co_lead else None
+    
+    def get_secretary_email(self):
+        return self.secretary.email if self.secretary else None 
+    
     @receiver([post_save, post_delete], sender='Innovation_WebApp.CommunityMember')
     def update_community_member_count(sender, instance, **kwargs):
         if instance.community:
             instance.community.update_total_members()
+    
+ 
+    
     
     
 class CommunitySession(models.Model):

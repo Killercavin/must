@@ -77,7 +77,10 @@ urlpatterns = [
 
 
     path('', include('Feedback.urls')),
-    path('comments/', include('comments.urls'))
+    path('comments/', include('comments.urls')),
+
+
+    path('api/', include('Club.urls')),
 
 ]
 

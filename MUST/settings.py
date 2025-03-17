@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'Feedback',
     'testimonials',
     'partners',
+    'Club',
 
 
 ]
