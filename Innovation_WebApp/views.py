@@ -4,7 +4,7 @@ from django.http import Http404, HttpResponse, JsonResponse
 from rest_framework import viewsets, views, status,permissions
 from rest_framework.response import Response
 from .serializers import CommunityJoinSerializer, CommunityMemberSerializer, CommunitySessionSerializer, SubscribedUsersSerializer, EventsSerializer,EventRegistrationSerializer,CommunityProfileSerializer
-from .models import SubscribedUsers, Events,EventRegistration,CommunityProfile
+from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile
 from django.core.mail import send_mail, EmailMessage
 from rest_framework.permissions import IsAdminUser,IsAuthenticated
 from django.core.validators import validate_email
@@ -306,62 +306,6 @@ class EventViewSet(viewsets.ModelViewSet):
                 'status':'failed',
                 'data':None
             },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-    # def get_user_events(self,request):
-    #     try:
-    #         # Get email from request parameters
-    #         email = request.query_params.get('email')
-
-    #         if not email:
-    #             return  Response({
-    #                 'message':'Email parameter is required',
-    #                 'status':'failed',
-    #                 'data':None
-    #             },status=status.HTTP_400_BAD_REQUEST)
-            
-    #         # Get all registrations for this email
-    #         registrations = EventRegistration.objects.filter(
-    #             email=email
-    #         ).select_related('event')
-
-    #         if not registrations.exists():
-    #             return Response({
-    #                 'message':'No events found for this email',
-    #                 'status':'success',
-    #                 'data':[]
-    #             },status=status.HTTP_200_OK)
-
-    #         # Collect event details for each registrations
-    #         events_data = []
-    #         for registration in registrations:
-    #             event_data = {
-    #                 'event_id':registration.event.id,
-    #                 'event_name':registration.event.name,
-    #                 'event_date':registration.event.date,
-    #                 'event_location':registration.event.location,
-    #                 'registration_date':registration.registration_timestamp,
-    #                 'ticket_number':registration.ticket_number
-    #             }
-    #             events_data.append(event_data)
-
-    #         return Response({
-    #             'message':'Events retrieved successfully',
-    #             'status':'success',
-    #             'data':events_data
-    #         },status=status.HTTP_200_OK)
-
-    #     except Exception as e:
-    #         return Response({
-    #             'message':f'Error retrieving events: {str(e)}',
-    #             'status':'failed',
-    #             'data':None
-    #         },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-     
-    
-
-
 
 class NewsletterSendView(views.APIView):
     def post(self, request):
@@ -824,6 +768,7 @@ class CommunityMembersView(APIView):
 class JoinCommunityView(APIView):
     def post(self, request, *args, **kwargs):
         community_id = kwargs.get('pk')  # Assuming URL pattern passes community ID
+        user_email = request.data.get('email')
         
         try:
             community = CommunityProfile.objects.get(id=community_id)
@@ -832,6 +777,14 @@ class JoinCommunityView(APIView):
                 {"error": "Community not found"}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+        # count the number of communities the user has joined
+        user_community_count = CommunityMember.objects.filter(email=user_email).count()
+
+        if user_community_count >= 3:
+            return Response({
+                "message":"You cannot join more than 3 communities."
+            },status=status.HTTP_400_BAD_REQUEST)
+        
         
         serializer = CommunityJoinSerializer(data={
             'community': community.id,

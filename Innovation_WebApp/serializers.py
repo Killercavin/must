@@ -2,6 +2,7 @@ from grpc import Status
 from requests import Response, Session
 from rest_framework import serializers
 
+from AboutUs.models import Club
 from Innovation_WebApp.Email import send_ticket_email
 from .models import CommunityMember, SubscribedUsers, Events,EventRegistration,CommunityProfile,CommunitySession,Social_media
 import boto3
@@ -10,7 +11,7 @@ import uuid
 from .whatsapp_service import send_registration_confirmation
 from django.db import IntegrityError, DatabaseError, OperationalError
 
-
+# from AboutUs.models import ExecutiveMember
 
 import logging
 
@@ -193,6 +194,9 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
     members = CommunityMemberSerializer(many=True, read_only=True)
     social_media = SocialMediaSerializer(many=True)
 
+    # community_lead = serializers.PrimaryKeyRelatedField(queryset=ExecutiveMember.objects.all(), allow_null=True)
+    # co_lead = serializers.PrimaryKeyRelatedField(queryset=ExecutiveMember.objects.all(), allow_null=True)   
+
     
     class Meta:
         model = CommunityProfile
@@ -212,6 +216,10 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
     
 
     def create(self, validated_data):
+        # default_club = Club.objects.get(id=1)
+
+        # if 'Club' is not validated_data:
+        #     validated_data['club'] = default_club
         social_media_data = validated_data.pop('social_media',[])
         
         members_data = validated_data.pop('members', []) 

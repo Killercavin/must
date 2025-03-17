@@ -46,6 +46,7 @@ DEBUG = True
 
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','https://7h3pspsq-8000.uks1.devtunnels.ms'] 
+# ALLOWED_HOSTS = ["*"]
 REST_USE_JWT = True
 # Application definition
 
@@ -83,7 +84,8 @@ INSTALLED_APPS = [
     'AboutUs',
     'Feedback',
     'testimonials',
-    'partners'
+    'partners',
+
 
 ]
 
@@ -162,6 +164,7 @@ SIMPLE_JWT = {
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    #'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -192,6 +195,21 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',  # This stores the database file in the project root
     }
 }
+
+
+# tmpPostgres = urlparse(os.getenv("DATABASE_URL"))
+
+# DATABASES = {
+# 'default': {
+# 'ENGINE': 'django.db.backends.postgresql',
+# 'NAME': tmpPostgres.path.replace('/', ''),
+# 'USER': tmpPostgres.username,
+# 'PASSWORD': tmpPostgres.password,
+# 'HOST': tmpPostgres.hostname,
+# 'PORT': 5432,
+# }
+# }
+
 
 
 # Password validation
@@ -229,6 +247,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -338,6 +358,14 @@ APPEND_SLASH = False
 GITHUB_REPO = os.getenv('GITHUB_REPO')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Access token expires in 1 day
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=10),  # Refresh token expires in 10 days
+    "ROTATE_REFRESH_TOKENS": False,  # Set to True if you want a new refresh token each time
+    "BLACKLIST_AFTER_ROTATION": True,  # Blacklist old refresh tokens when rotated
+    "AUTH_HEADER_TYPES": ("Bearer",),  # Use 'Bearer' as the token prefix
+}
 
 
 

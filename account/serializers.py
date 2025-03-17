@@ -63,7 +63,6 @@ class RegisterSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         # Extract user profile
-        #registration_no = validated_data.pop('registration_no')
         course = validated_data.pop('course')
 
         # Create User with 'is_active=False'
@@ -188,20 +187,19 @@ class RequestPasswordResetSerializer(serializers.Serializer):
     
 
 class VerifyOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
     otp_code = serializers.CharField(max_length=6,min_length=6)
 
 class ResetPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True)
 
-    def validate(self,data):
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
-        
-        # validate password's strength
-        validate_password(data['password'])
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exist")
+        return value
+    
 
-        return data
 
 
 

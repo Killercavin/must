@@ -38,6 +38,7 @@ class UserProfile(models.Model):
     graduation_year = models.PositiveIntegerField(blank=True,null=True)
     projects = models.TextField(blank=True,null=True)
     skills = models.TextField(blank=True,null=True)
+    year_of_study = models.PositiveIntegerField(blank=True,null=True)
 
     def __str__(self):
         return self.user.username
@@ -92,7 +93,7 @@ class OTP(models.Model):
         super().save(*args,**Kwargs)
     
     def is_valid(self):
-        return not self.is_verified and timezone.now() <= self.expires_at
+        return timezone.now() <= self.expires_at
     
 
 class PasswordResetSession(models.Model):

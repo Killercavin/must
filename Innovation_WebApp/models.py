@@ -50,6 +50,7 @@ class EventRegistration(models.Model):
     ('2', 'Year 2'),
     ('3', 'Year 3'),
     ('4', 'Year 4'),
+    ('5','year 5'),
     ]
     uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey('Events', on_delete=models.CASCADE, related_name='registrations')
@@ -84,8 +85,10 @@ class CommunityProfile(models.Model):
         ('PHYSICAL', 'Physical'),
         ('HYBRID', 'Hybrid')
     ]
-
+    #club = models.ForeignKey('AboutUs.Club',on_delete=models.CASCADE, related_name='communities',null=True, blank=True)
     name = models.CharField(max_length=200)
+    # community_lead = models.ForeignKey('AboutUs.ExecutiveMember', on_delete=models.SET_NULL, null=True, related_name='lead_communities')
+    # co_lead = models.ForeignKey('AboutUs.ExecutiveMember', on_delete=models.SET_NULL, null=True, related_name='co_lead_communities')
     community_lead = models.CharField(max_length=200)
     co_lead = models.CharField(max_length=200, blank=True, null=True)
     #treasurer = models.CharField(max_length=200, blank=True, null=True)
@@ -133,7 +136,6 @@ class CommunitySession(models.Model):
         ('SATURDAY', 'Saturday'),
         ('SUNDAY', 'Sunday')
     ]
-
     community = models.ForeignKey(CommunityProfile, related_name='sessions', on_delete=models.CASCADE)
     day = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
     start_time = models.TimeField()

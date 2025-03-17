@@ -17,7 +17,7 @@ class Partner(models.Model):
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=50, choices=PartnerType.choices)
     description = models.TextField()
-    logo = models.URLField()
+    logo = models.ImageField(upload_to='partner_logos/')
     web_url = models.URLField()
     contact_email = models.EmailField()
     contact_person = models.CharField(max_length=255)

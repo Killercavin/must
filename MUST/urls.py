@@ -16,7 +16,7 @@ from Innovation_WebApp.views import (
     SessionCreateView,
     JoinCommunityView,
 )
-from AboutUs import urls
+# from AboutUs import urls
 from Feedback import urls
 from testimonials.views import TestimonialViewSet
 # Main router
@@ -26,6 +26,7 @@ router.register(r'events', EventViewSet, basename='events')
 router.register(r'communities', CommunityProfileViewSet)
 router.register(r'testimonials', TestimonialViewSet)
 router.register(r'partners', PartnerViewSet)
+#router.register(r'community-members', CommunityMembersView, basename='community-members')
 
 
 
@@ -63,6 +64,8 @@ urlpatterns = [
     path('retrieve-community/<int:pk>/', detail_viewset, name='retrieve-community'),
     path('update-community/<int:pk>/', detail_viewset, name='update-community'),
     path('search-community/', search_viewset, name='search-community'),
+    path('communities/<int:pk>/join/', JoinCommunityView.as_view(), name='join-community'),
+    path('communities/<int:pk>/members/', CommunityMembersView.as_view(), name='community_members'),
 
 
     
@@ -77,3 +80,4 @@ urlpatterns = [
     path('comments/', include('comments.urls'))
 
 ]
+

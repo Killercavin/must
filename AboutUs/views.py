@@ -1,15 +1,17 @@
 from rest_framework import viewsets,status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Club,ExecutiveMember,SocialMedia
-from .serializers import ClubSerializers,ExecutiveMemberSerializer,SocialMediaSerializer
+from .models import Club
+from .serializers import ClubSerializer
 from django.shortcuts import get_object_or_404
+from rest_framework import generics
 # Create your views here.
 
 class ClubViewSet(viewsets.ModelViewSet):
-    queryset = Club.objects.all()
-    serializer_class = ClubSerializers
+    queryset = Club.objects.prefetch_related('communities').all()
+    serializer_class = ClubSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'put', 'patch']
 
     def list(self,request):
         clubs = self.get_queryset()
@@ -20,15 +22,16 @@ class ClubViewSet(viewsets.ModelViewSet):
             'data':serializer.data
         },status=status.HTTP_200_OK)
     
-    def create(self,request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Club created successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_201_CREATED)
+    """I will comment out the view function to create a club because at this point we don't need it"""
+    # def create(self,request):
+    #     serializer = self.get_serializer(data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response({
+    #             'message':'Club created successfully',
+    #             'status':'success',
+    #             'data':serializer.data
+    #         },status=status.HTTP_201_CREATED)
     
     def retrieve(self,request,pk=None):
         try:
@@ -70,252 +73,17 @@ class ClubViewSet(viewsets.ModelViewSet):
             'status':'success',
             'data':[]
         },status=status.HTTP_200_OK)
-
-# class CommunityViewSet(viewsets.ModelViewSet):
-#     queryset = Community.objects.all()
-#     serializer_class = CommunitySerializer
-#     permission_classes = [IsAuthenticated]
-
-#     def list(self,request):
-#         communities = self.get_queryset()
-#         club_id = request.query_params.get('club_id',None)
-#         if club_id:
-#             communities = communities.filter(club_id=club_id)
-#         serializer = self.get_serializer(communities,many=True)
-#         return Response({
-#             'message':'Communities retrieved successfuly',
-#             'status':'success',
-#             'data':serializer.data
-#         },status=status.HTTP_200_OK)
-    
-    # def create(self,request):
-    #     serializer = self.get_serializer(data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response({
-    #             'message':'Community created successfully',
-    #             'status':'success',
-    #             'data':serializer.data
-    #         },status=status.HTTP_201_CREATED)
-    #     return Response({
-    #         'message':'failed to create the community',
-    #         'status':'error',
-    #         'data':serializer.errors
-    #     },status=status.HTTP_400_BAD_REQUEST)
-    # def create(self,validated_data):
-    #     social_media_data = validated_data.pop('social_media',[])
-    #     community = Community.objects.create(**validated_data)
-
-    #     for social_media_item in social_media_data:
-    #         platform = social_media_item.get('platform')
-    #         url = social_media_item.get('url')
-
-    #         SocialMedia.objects.create(
-    #             community=community,
-    #             platform=platform,
-    #             url=url
-    #         )
-        
-    #     return community
-    
-    # def retrieve(self,request,pk=None):
-    #     try:
-    #         community = self.get_object()
-    #         serializer = self.get_serializer(community)
-    #         return Response({
-    #             'message':'Community retrieved successfully',
-    #             'status':'success',
-    #             'data':serializer.data
-    #         },status=status.HTTP_200_OK)
-    #     except Community.DoesNotExist:
-    #         return Response({
-    #             'message':'Community not found',
-    #             'status':'failed',
-    #             'data':None
-    #         },status=status.HTTP_400_BAD_REQUEST)
-        
-    # def update(self,request,pk=None):
-    #     community = self.get_object()
-    #     serializer = self.get_serializer(community,data=request.data)
-    #     if serializer.is_valid():
-    #         serializer.save()
-    #         return Response({
-    #             'message':'Community updated succesfully',
-    #             'status':'success',
-    #             'data':serializer.data
-    #         },status=status.HTTP_200_OK)
-    #     return Response({
-    #         'message':'failed to update community',
-    #         'status':'failed',
-    #         'data':serializer.errors
-    #     },status=status.HTTP_400_BAD_REQUEST)
-    
-    # def destroy(self,request,pk=None):
-    #     community = self.get_object()
-    #     community.delete()
-    #     return Response({
-    #         'message':'Community deleted successfully',
-    #         'status':'success',
-    #         'data':[]
-    #     }, status=status.HTTP_204_NO_CONTENT)
-    
-class ExecutiveMemberViewSet(viewsets.ModelViewSet):
-    queryset = ExecutiveMember.objects.all()
-    serializer_class = ExecutiveMemberSerializer
-    permission_classes = [IsAuthenticated]
-
-    def list(self,request):
-        executives = self.get_queryset()
-        community_id = request.query_params.get('community_id',None)
-        if community_id:
-            executives = executives.filter(community_id=community_id)
-        serializer = self.get_serializer(executives,many=True)
-        return Response({
-            'message':'Exective members retrieved successfully',
-            'status':'success',
-            'data':serializer.data
-        },status=status.HTTP_200_OK)
-    
-    def create(self,request):
-        club_id=request.data.get('club') # extract club id from request
-        club = get_object_or_404(Club, id=club_id)
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Executive Member created successully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_201_CREATED)
-        return Response({
-            'message':'failed to create executive member',
-            'status':'failed',
-            'data':serializer.errors
-        },status=status.HTTP_400_BAD_REQUEST)
-    
-    def retrieve(self,request,pk=None):
-        try:
-            executive = self.get_object()
-            serializer = self.get_serializer(executive)
-            return Response({
-                'message':'Executive member retrieved successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
-        except ExecutiveMember.DoesNotExist:
-            return Response({
-                'message':'Executive member not found',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_404_NOT_FOUND)
-    
-    def update(self,request,pk=None):
-        executive = self.get_object()
-        serializer = self.get_serializer(executive,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Executive member updated successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
-        return Response({
-            'message':'failed to update the executive member',
-            'status':'failed',
-            'data':serializer.errors
-        },status=status.HTTP_400_BAD_REQUEST)
-    
-    def destory(self,request,pk=None):
-        executive = self.get_object()
-        executive.delete()
-        return Response({
-            'message':'Executive memeber deleted successfully',
-            'status':'success',
-            'data':[]
-        },status=status.HTTP_204_NO_CONTENT)
-
-class SocialMediaViewSet(viewsets.ModelViewSet):
-    queryset = SocialMedia.objects.all()
-    serializer_class = SocialMediaSerializer
-    permission_classes = [IsAuthenticated]
-
-    def list(self,request):
-        social_media = self.get_queryset()
-        club_id = request.query_params.get('club_id',None)
-        community_id = request.query_params.get('community_id', None)
-        executive_id = request.query_params.get('executive_id', None)
-
-        if club_id:
-            social_media = social_media.filter(club_id=club_id)
-        if community_id:
-            social_media = social_media.filter(community_id=community_id)
-        if executive_id:
-            social_media = social_media.filter(executive_id=executive_id)
-
-        serializer = self.get_serializer(social_media,many=True)
-        return Response({
-            'message':'social media platforms retrieved successfully',
-            'status':'success',
-            'data':serializer.data
-        },status=status.HTTP_200_OK)
-    
-    def create(self,request):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message':'Social platform created successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_201_CREATED)
-        return Response({
-            'meeage':'failed to create social media platform',
-            'status':'failed',
-            'data':serializer.errors
-        },status=status.HTTP_400_BAD_REQUEST)
-    
-    def retrieve(self,request,pk=None):
-        try:
-            social_media = self.get_object()
-            serializer = self.get_serializer(social_media)
-            return Response({
-                'message':'social media platform retrieved successfully',
-                'status':'success',
-                'data':serializer.data
-            },status=status.HTTP_200_OK)
-        except SocialMedia.DoesNotExist:
-            return Response({
-                'messge':'Social Media Platform was not found',
-                'status':'failed',
-                'data':None
-            },status=status.HTTP_404_NOT_FOUND)
-        
-    def update(self, request, pk=None):
-        social_media = self.get_object()
-        serializer = self.get_serializer(social_media, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Social media platform updated successfully',
-                'status': 'success',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        return Response({
-            'message': 'Failed to update social media platform',
-            'status': 'error',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, pk=None):
-        social_media = self.get_object()
-        social_media.delete()
-        return Response({
-            'message': 'Social media platform deleted successfully',
-            'status': 'success',
-            'data':[]
-        }, status=status.HTTP_204_NO_CONTENT)
     
 
+
+    
+# class ExecutiveMemberListCreateView(generics.ListCreateAPIView):
+#     queryset = ExecutiveMember.objects.all()
+#     serializer_class = ExecutiveMemberSerializer
+
+# class ExecutiveMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = ExecutiveMember.objects.all()
+#     serializer_class = ExecutiveMemberSerializer
 
    
 

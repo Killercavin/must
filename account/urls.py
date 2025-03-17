@@ -17,6 +17,7 @@ urlpatterns = [
     #path('verify-email/',VerifyEmailView.as_view,name='verify_email'),
     path('verify-email/<str:token>', EmailVerificationView.as_view(), name='verify_email'),
     path('login/',LoginView.as_view(),name='login'),
+    path('logout/',LogoutView.as_view(),name='logout'),
 
     # Authentication Routes
     path('logout/', LogoutView.as_view(), name='logout'),

@@ -38,7 +38,7 @@ def create_github_issue(sender, instance, created, **kwargs):
 - Submitted: {instance.submitted_at}
 - Feedback ID: {instance.id}
 
-[View in Admin Panel](https://yourdomain.com/admin/yourapp/feedback/{instance.id}/change/)
+
         """
         
         data = {
