@@ -93,6 +93,7 @@ INSTALLED_APPS = [
 
 
 
+
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "scope": [
@@ -313,10 +314,7 @@ AWS_STORAGE_BUCKET_NAME = secrets['AWS_STORAGE_BUCKET_NAME']
 AWS_S3_REGION_NAME = ['AWS_S3_REGION_NAME']
 AWS_S3_FILE_OVERWRITE = secrets['AWS_S3_FILE_OVERWRITE']
 AWS_S3_SIGNATURE_VERSION = secrets['AWS_S3_SIGNATURE_VERSION']
-AWS_REGION = "ap-southeast-2"
-
- 
-
+AWS_REGION = "ap-southeast-2" 
 
 
 FRONTEND_BASE_URL = "https://7h3pspsq-8000.uks1.devtunnels.ms/api/account"
