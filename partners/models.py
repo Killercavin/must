@@ -6,18 +6,18 @@ class Partner(models.Model):
         INACTIVE = "INACTIVE", "Inactive"
         PENDING = "PENDING", "Pending"
         COMPLETED = "COMPLETED", "Completed"
-
+    
     class PartnerType(models.TextChoices):
         TECH = "TECH", "Tech"
         ACADEMIC = "ACADEMIC", "Academic"
         COMMUNITY = "COMMUNITY", "Community"
         MEDIA = "MEDIA", "Media"
         CORPORATE = "CORPORATE", "Corporate"
-
+    
     name = models.CharField(max_length=255)
     type = models.CharField(max_length=50, choices=PartnerType.choices)
     description = models.TextField()
-    logo = models.URLField()
+    logo = models.URLField()  # This will store the S3 URL
     web_url = models.URLField()
     contact_email = models.EmailField()
     contact_person = models.CharField(max_length=255)
@@ -33,6 +33,6 @@ class Partner(models.Model):
     resources = models.TextField()
     achievements = models.TextField()
     target_audience = models.TextField()
-
+    
     def __str__(self):
         return self.name
