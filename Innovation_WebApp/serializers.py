@@ -196,22 +196,27 @@ class CommunityProfileSerializer(serializers.ModelSerializer):
     members = CommunityMemberSerializer(many=True, read_only=True)
     social_media = SocialMediaSerializer(many=True)
 
-    club = ClubSerializer(read_only=True)
-    club_id = serializers.PrimaryKeyRelatedField(queryset=Club.objects.all(), write_only=True, source='club')
+    #club = ClubSerializer(read_only=True)
+    # club_id = serializers.PrimaryKeyRelatedField(queryset=Club.objects.all(), write_only=True, source='club')
 
+    # For reading - full details
     community_lead_details = ExecutiveMemberSerializer(source='community_lead', read_only=True)
     co_lead_details = ExecutiveMemberSerializer(source='co_lead', read_only=True)
     secretary_details = ExecutiveMemberSerializer(source='secretary', read_only=True)
-
     
     class Meta:
         model = CommunityProfile
         fields = [
-            'id', 'name', 'community_lead', 'co_lead', 
-            'secretary', 'email', 'phone_number', 'description', 
+            'id', 'name', 'community_lead', 'community_lead_details', 'co_lead', 'co_lead_details', 
+            'secretary', 'secretary_details', 'email', 'phone_number', 'description', 
             'founding_date', 'is_recruiting', 'social_media',
-            'tech_stack', 'members', 'total_members', 'sessions'
+            'tech_stack', 'members', 'total_members', 'sessions',
         ]
+        extra_kwargs = {
+            'community_lead': {'write_only': True},
+            'co_lead': {'write_only': True},
+            'secretary': {'write_only': True}
+        }
     
     def validate_tech_stack(self,value):
         if not isinstance(value,list):

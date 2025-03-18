@@ -17,7 +17,18 @@ class ClubDetailView(APIView):
     """
 
     def get(self, request):
-        club = get_object_or_404(Club, id=DEFAULT_CLUB_ID)
+        club = get_object_or_404(
+            Club.objects.prefetch_related(
+                'communities',
+                'communities__community_lead',
+                'communities__co_lead',
+                'communities__secretary',
+                'communities__social_media',
+                'communities__members',
+                'communities__sessions'
+            ), 
+        id=DEFAULT_CLUB_ID
+    )
         serializer = ClubSerializer(club)
         return Response({
             'message': 'Club retrieved successfully',
