@@ -78,7 +78,7 @@ class UserProfile(models.Model):
     
 
 
-# forgot password
+# forgot password OTP
 class OTP(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     otp_code = models.CharField(max_length=6)
@@ -94,6 +94,9 @@ class OTP(models.Model):
     
     def is_valid(self):
         return timezone.now() <= self.expires_at
+
+
+# Sign up otp
     
 
 class PasswordResetSession(models.Model):

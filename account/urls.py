@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib import admin
-from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,
-                           LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,
+from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,VerifyRegisterOTPView,
+                           LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,ResendOTPView,
                            VerifyPasswordChangeView,RequestPasswordResetView,VerifyOTPView,ResetPasswordView,UserProfileUpdateView)
 from .views import DeleteAccountView
 from rest_framework_simplejwt.views import (
@@ -14,7 +14,8 @@ from .views import get_all_users
 urlpatterns = [
     # Authentication Routes
     path('register/',RegisterView.as_view(),name='register'),
-    #path('verify-email/',VerifyEmailView.as_view,name='verify_email'),
+    path('verify-otp/', VerifyRegisterOTPView.as_view(), name='verify-otp'),
+    path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('verify-email/<str:token>', EmailVerificationView.as_view(), name='verify_email'),
     path('login/',LoginView.as_view(),name='login'),
     path('logout/',LogoutView.as_view(),name='logout'),

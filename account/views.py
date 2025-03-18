@@ -39,58 +39,187 @@ from django.http import HttpResponse
 from rest_framework_simplejwt.views import TokenRefreshView
 import traceback
 from datetime import timedelta
+
+import random
+import string
+
 class RegisterView(APIView):
-    def post(self, request):
+    def post(self,request):
         serializer = RegisterSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             user = serializer.save()
-
-            # Call the email verification function without passing `request`
+            
+            # Generate and sent otp for verification
             try:
-                self.send_verification_email(user)
+                self.send_otp_email(user)
             except Exception as e:
                 return Response({
-                    "message": f"Failed to send verification email: {str(e)}"
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+                    "message":f'failed to send OTP email: {str(e)}'
+                },status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
             user_profile = UserProfile.objects.get(user=user)
-            user_data = {
-                'username': str(user.username),
-                'email': str(user.email),
-                'first_name': str(user.first_name),
-                'last_name': str(user.last_name),
-                #'registration_no': str(user_profile.registration_no),
-                'course': str(user_profile.course)
-            }
             return Response({
-                'message': 'Account created successfully. Please check your email for verification instructions.',
-                'status':'success',
-                'user_data': None
-            }, status=status.HTTP_201_CREATED)
-
+                "message":"Account created successfully.Please check your email for OTP verification code",
+                "status":"success",
+                "user_data":None
+            },status=status.HTTP_201_CREATED)
         return Response({
-            'message':'There was a problem signing up.Please try again',
-            'status': serializer.errors,
-            'data':None
-        }, status=status.HTTP_400_BAD_REQUEST)
+            "message":"There was a problem signing up.Please try again",
+            "status":serializer.errors,
+            "data":None
+        },status=status.HTTP_400_BAD_REQUEST)
+    
+    def send_otp_email(self,user):
+        """Generate OTP and send it via email"""
+        # Generate a 6-digit OTP
+        otp_code = ''.join(random.choices(string.digits, k=6))
 
-    def send_verification_email(self, user):
-        token = self.generate_verification_token(user)
-        verification_url = f"{settings.FRONTEND_BASE_URL}/verify-email/{token}"
-
-        send_mail(
-            subject="Email Verification",
-            message=f"Please verify your email by clicking this link: {verification_url}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+        # Create or update OTP for user
+        expires_at = timezone.now() + timezone.timedelta(minutes=10)
+        otp_obj, created = OTP.objects.update_or_create(
+            user=user,
+            defaults={
+                'otp_code': otp_code,
+                'expires_at': expires_at,
+                'is_verified': False
+            }
         )
 
-    def generate_verification_token(self, user):
-        """Generates a JWT token for email verification."""
-        refresh = RefreshToken.for_user(user)
-        return str(refresh.access_token)
+        send_mail(
+            subject="Email Verification OTP",
+            message=f"Your verification OTP is: {otp_code}\n This codee will expire in 10 minutes",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False
+        )
+
+
+class VerifyRegisterOTPView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        print("Received data:", request.data) 
+        email = request.data.get('email')
+        otp_code = request.data.get('otp_code')
+
+        if not email or not otp_code:  # <- This line was fixed
+            return Response({
+                "message": "Email and OTP are required",
+                "status": "error",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email, is_active=False)
+        except User.DoesNotExist:
+            return Response({
+                "message": "Invalid email or account already verified",
+                "status": "error",
+                "data": None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            otp_obj = OTP.objects.get(user=user, is_verified=False)
+
+            # Check if OTP is valid and matches
+            if not otp_obj.is_valid():
+                return Response({
+                    'message': 'OTP has expired. Please request a new one',
+                    'status': 'error',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if otp_code != otp_obj.otp_code:
+                return Response({
+                    'message': 'Invalid OTP',
+                    'status': 'error',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Activate user account
+            user.is_active = True
+            user.save()
+
+            # Mark otp as verified
+            otp_obj.is_verified = True
+            otp_obj.save()
+
+            return Response({
+                "message": "Email Verified successfully. You can now login",
+                "status": 'success',
+                "data": None
+            }, status=status.HTTP_200_OK)
+        
+        except OTP.DoesNotExist:
+            return Response({
+                'message': 'No OTP found for this account. Please request a new OTP',
+                'status': 'error',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+# New view for resending OTP
+class ResendOTPView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self,request):
+        email = request.data.get('email')
+
+        if not email:
+            return Response({
+                "message":"Email is required",
+                "status":"error",
+                "data":None
+            },status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email, is_active=False)
+
+        except User.DoesNotExist:
+            return Response({
+                'message': 'Invalid email or account already verified',
+                'status': 'error',
+                'data': None
+            }, status=status.HTTP_400_BAD_REQUEST)
+        # Generate new OTP and send email
+        try:
+            # Generate a 6-digit OTP
+            otp_code = ''.join(random.choices(string.digits, k=6))
+            
+            # Create or update OTP for user
+            expires_at = timezone.now() + timezone.timedelta(minutes=10)
+            otp_obj, created = OTP.objects.update_or_create(
+                user=user,
+                defaults={
+                    'otp_code': otp_code,
+                    'expires_at': expires_at,
+                    'is_verified': False
+                }
+            )
+
+            send_mail(
+                subject="Email Verification OTP",
+                message=f"Your new verification OTP is: {otp_code}\nThis code will expire in 10 minutes.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            
+            return Response({
+                'message': 'New OTP sent successfully. Please check your email',
+                'status': 'success',
+                'data': None
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'message': f'Failed to send OTP: {str(e)}',
+                'status': 'error',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+
 
 # Helper function for sending email verification
 def send_verification_email(user):
