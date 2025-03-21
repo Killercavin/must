@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'testimonials',
     'partners',
     'Club',
+    'fcm_django',
 
 
 ]
@@ -167,6 +168,7 @@ SIMPLE_JWT = {
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     #'whitenoise.middleware.WhiteNoiseMiddleware',
+    'Innovation_WebApp.middleware.RequestLoggingMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -367,13 +369,87 @@ SIMPLE_JWT = {
 }
 
 
+FCM_SERVER_KEY = 'your-server-key-from-firebase-console'
 
 
 
 
-
-
-
-
-
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'django_server_filter': {
+            '()': 'Innovation_WebApp.logging_utils.DjangoServerFilter',
+        },
+    },
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'detailed': {
+            'format': '{levelname} {asctime} {module} {message} - {pathname}:{lineno}',
+            'style': '{',
+        },
+        'table': {
+            '()': 'Innovation_WebApp.logging_utils.TableFormatter',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{asctime} | {levelname:<8} | {module:<15} | {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'table',
+            'filters': ['django_server_filter'],
+        },
+        'api_requests_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'api_requests.log',
+            'formatter': 'detailed',
+        },
+        'debug_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'detailed',
+        },
+        'mail_admins': {
+            'level': 'WARNING',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'detailed',
+        },
+        'console_simple': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'request.logs': {
+            'handlers': ['console', 'api_requests_file', 'mail_admins'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console', 'debug_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console_simple', 'debug_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        '': {
+            'handlers': ['console_simple', 'debug_file'],
+            'level': 'INFO',
+        },
+    },
+}

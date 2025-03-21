@@ -1,9 +1,9 @@
 from django.urls import path
 from django.contrib import admin
-from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,VerifyRegisterOTPView,
+from account.views import (ChangePasswordView, CustomTokenRefreshView, LogoutView, RegisterView,
                            LoginView, UserDataView,VerifyEmailView,EmailVerificationView,AllUsersView,ResendOTPView,
-                           VerifyPasswordChangeView,RequestPasswordResetView,VerifyOTPView,ResetPasswordView,UserProfileUpdateView)
-from .views import DeleteAccountView
+                           VerifyPasswordChangeView,RequestPasswordResetView,ResetPasswordView,UserProfileUpdateView)
+from .views import DeleteAccountView, UnifiedOTPVerificationView
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
@@ -14,8 +14,8 @@ from .views import get_all_users
 urlpatterns = [
     # Authentication Routes
     path('register/',RegisterView.as_view(),name='register'),
-    path('verify-otp/', VerifyRegisterOTPView.as_view(), name='verify-otp'),
-    path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
+    #path('verify-otp/', VerifyRegisterOTPView.as_view(), name='verify-otp'),
+    #path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('verify-email/<str:token>', EmailVerificationView.as_view(), name='verify_email'),
     path('login/',LoginView.as_view(),name='login'),
     path('logout/',LogoutView.as_view(),name='logout'),
@@ -46,10 +46,13 @@ urlpatterns = [
 
     # forgot password
     path('password-reset/request/',RequestPasswordResetView.as_view(),name='request-password-reset'),
-    path('password-reset/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    #path('password-reset/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('password-reset/reset/', ResetPasswordView.as_view(), name='reset-password'),
 
     # update user data
-    path('update-user-profile/', UserProfileUpdateView.as_view(), name='user_profile_update')
+    path('update-user-profile/', UserProfileUpdateView.as_view(), name='user_profile_update'),
+
+
+    path('verify-otp/', UnifiedOTPVerificationView.as_view(), name='verify-otp'),
    
 ]

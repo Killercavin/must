@@ -95,34 +95,114 @@ class RegisterView(APIView):
         )
 
 
-class VerifyRegisterOTPView(APIView):
+# class VerifyRegisterOTPView(APIView):
+#     permission_classes = []
+#     authentication_classes = []
+
+#     def post(self, request):
+#         print("Received data:", request.data) 
+#         email = request.data.get('email')
+#         otp_code = request.data.get('otp_code')
+
+#         if not email or not otp_code:  # <- This line was fixed
+#             return Response({
+#                 "message": "Email and OTP are required",
+#                 "status": "error",
+#                 "data": None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         try:
+#             user = User.objects.get(email=email, is_active=False)
+#         except User.DoesNotExist:
+#             return Response({
+#                 "message": "Invalid email or account already verified",
+#                 "status": "error",
+#                 "data": None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+        
+#         try:
+#             otp_obj = OTP.objects.get(user=user, is_verified=False)
+
+#             # Check if OTP is valid and matches
+#             if not otp_obj.is_valid():
+#                 return Response({
+#                     'message': 'OTP has expired. Please request a new one',
+#                     'status': 'error',
+#                     'data': None
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             if otp_code != otp_obj.otp_code:
+#                 return Response({
+#                     'message': 'Invalid OTP',
+#                     'status': 'error',
+#                     'data': None
+#                 }, status=status.HTTP_400_BAD_REQUEST)
+            
+#             # Activate user account
+#             user.is_active = True
+#             user.save()
+
+#             # Mark otp as verified
+#             otp_obj.is_verified = True
+#             otp_obj.save()
+
+#             return Response({
+#                 "message": "Email Verified successfully. You can now login",
+#                 "status": 'success',
+#                 "data": None
+#             }, status=status.HTTP_200_OK)
+        
+#         except OTP.DoesNotExist:
+#             return Response({
+#                 'message': 'No OTP found for this account. Please request a new OTP',
+#                 'status': 'error',
+#                 'data': None
+#             }, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class UnifiedOTPVerificationView(APIView):
     permission_classes = []
     authentication_classes = []
 
     def post(self, request):
-        print("Received data:", request.data) 
         email = request.data.get('email')
         otp_code = request.data.get('otp_code')
 
-        if not email or not otp_code:  # <- This line was fixed
+        if not email or not otp_code:
             return Response({
                 "message": "Email and OTP are required",
                 "status": "error",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Try to find the user
         try:
-            user = User.objects.get(email=email, is_active=False)
+            user = User.objects.get(email=email)
+            # Auto-detect verification type based on user's active status
+            verification_type = 'registration' if not user.is_active else 'password_reset'
+            
         except User.DoesNotExist:
             return Response({
-                "message": "Invalid email or account already verified",
+                "message": "User not found",
                 "status": "error",
                 "data": None
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Get and verify OTP
         try:
-            otp_obj = OTP.objects.get(user=user, is_verified=False)
-
+            # Get the most recent unverified OTP for the user
+            otp_obj = OTP.objects.filter(
+                user=user,
+                is_verified=False
+            ).order_by('-created_at').first()
+            
+            if not otp_obj:
+                return Response({
+                    'message': 'No OTP found for this account. Please request a new OTP',
+                    'status': 'error',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
             # Check if OTP is valid and matches
             if not otp_obj.is_valid():
                 return Response({
@@ -138,26 +218,33 @@ class VerifyRegisterOTPView(APIView):
                     'data': None
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Activate user account
-            user.is_active = True
-            user.save()
-
-            # Mark otp as verified
+            # Mark OTP as verified
             otp_obj.is_verified = True
             otp_obj.save()
-
+            
+            # For registration: activate the user account
+            if verification_type == 'registration':
+                user.is_active = True
+                user.save()
+                return Response({
+                    "message": "Email verified successfully. You can now login",
+                    "status": 'success',
+                    "data": None
+                }, status=status.HTTP_200_OK)
+            # For password reset: just confirm OTP verification
+            else:
+                return Response({
+                    "message": "OTP verified successfully. You can now reset your password",
+                    "status": 'success',
+                    "data": None
+                }, status=status.HTTP_200_OK)
+                
+        except Exception as e:
             return Response({
-                "message": "Email Verified successfully. You can now login",
-                "status": 'success',
-                "data": None
-            }, status=status.HTTP_200_OK)
-        
-        except OTP.DoesNotExist:
-            return Response({
-                'message': 'No OTP found for this account. Please request a new OTP',
+                'message': f'An error occurred: {str(e)}',
                 'status': 'error',
                 'data': None
-            }, status=status.HTTP_400_BAD_REQUEST)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 # New view for resending OTP
 class ResendOTPView(APIView):
@@ -824,27 +911,27 @@ class RequestPasswordResetView(APIView):
             return Response({"message":"OTP has been sent to your email."},status=status.HTTP_200_OK)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
-class VerifyOTPView(APIView):
-    def post(self, request):
-        serializer = VerifyOTPSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            otp_code = serializer.validated_data['otp_code']
+# class VerifyOTPView(APIView):
+#     def post(self, request):
+#         serializer = VerifyOTPSerializer(data=request.data)
+#         if serializer.is_valid():
+#             email = serializer.validated_data['email']
+#             otp_code = serializer.validated_data['otp_code']
 
-            user = User.objects.get(email=email)
-            otp = OTP.objects.filter(
-                user=user,
-                otp_code=otp_code,
-                is_verified=False
-            ).order_by('-created_at').first()
+#             user = User.objects.get(email=email)
+#             otp = OTP.objects.filter(
+#                 user=user,
+#                 otp_code=otp_code,
+#                 is_verified=False
+#             ).order_by('-created_at').first()
 
-            if otp and otp.is_valid():
-                otp.is_verified = True  # Mark OTP as verified
-                otp.save()
-                print(f"OTP {otp.otp_code} verified for user {user.email}")
-                return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
-            return Response({"message": "Invalid or expired OTP"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#             if otp and otp.is_valid():
+#                 otp.is_verified = True  # Mark OTP as verified
+#                 otp.save()
+#                 print(f"OTP {otp.otp_code} verified for user {user.email}")
+#                 return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+#             return Response({"message": "Invalid or expired OTP"}, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class ResetPasswordView(APIView):
     def post(self, request):
