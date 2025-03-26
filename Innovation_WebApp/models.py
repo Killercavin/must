@@ -6,6 +6,7 @@ from django.core.validators import EmailValidator,MinValueValidator, MaxValueVal
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 import hashlib
+import uuid
 from Club.models import Club, ExecutiveMember 
 #from django.contrib.auth.models import User
 
@@ -42,34 +43,34 @@ class Events(models.Model):
         return self.title
     
 
+
 class EventRegistration(models.Model):
-
-
     EDUCATION_LEVELS = [
-    ('1', 'Year 1'),
-    ('2', 'Year 2'),
-    ('3', 'Year 3'),
-    ('4', 'Year 4'),
-    ('5','year 5'),
+        ('1', 'Year 1'),
+        ('2', 'Year 2'),
+        ('3', 'Year 3'),
+        ('4', 'Year 4'),
+        ('5', 'Year 5'),
     ]
-    uid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Remove the explicit id field and let Django handle the primary key
+    uid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    
     event = models.ForeignKey('Events', on_delete=models.CASCADE, related_name='registrations')
     full_name = models.CharField(max_length=200)
     email = models.EmailField(validators=[EmailValidator()])
     course = models.CharField(max_length=200)
     educational_level = models.CharField(max_length=20, choices=EDUCATION_LEVELS)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
-    expectations = models.CharField(max_length=100,null=True)
+    expectations = models.CharField(max_length=100, null=True)
     registration_timestamp = models.DateTimeField(auto_now_add=True)
     ticket_number = models.UUIDField(default=uuid.uuid4, unique=True)
-
-
 
     def __str__(self):
         return f"{self.full_name} - {self.event.name}"
     
     class Meta:
-        unique_together = ['email','event']
+        unique_together = ['email', 'event']
     
 class Social_media(models.Model):
     platform = models.CharField(max_length=50)

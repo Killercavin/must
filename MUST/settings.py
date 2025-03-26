@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,10 +15,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
 # Allowed Hosts Configuration
-# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
 ALLOWED_HOSTS = ['*']
-
 
 # Ensure SECRET_KEY is not empty
 if not SECRET_KEY:
@@ -75,22 +73,15 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'MUST.urls'
 WSGI_APPLICATION = 'MUST.wsgi.application'
 
-# Database Configuration for Azure MySQL
+# Database Configuration for Neon PostgreSQL
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('AZURE_MYSQL_DATABASE_NAME'),
-        'USER': os.environ.get('AZURE_MYSQL_USERNAME'),
-        'PASSWORD': os.environ.get('AZURE_MYSQL_PASSWORD'),
-        'HOST': os.environ.get('AZURE_MYSQL_HOST'),
-        'PORT': os.environ.get('AZURE_MYSQL_PORT', '3306'),
-        'OPTIONS': {
-            'ssl': {
-                'ca': os.environ.get('AZURE_MYSQL_SSL_CA_PATH')
-            },
-        },
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
+
 # Authentication and Password Validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
